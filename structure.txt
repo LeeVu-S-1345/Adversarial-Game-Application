@@ -1,0 +1,51 @@
+netpro-game/
+├─ docs/
+│  └─ protocol.md              chép từ tab protocol của nhóm
+├─ protocol/
+│  └─ vectors.txt              bytes -> (cmd, fields), C++ và Java cùng test
+│
+├─ server/                     BACKEND (C++)
+│  ├─ CMakeLists.txt
+│  ├─ src/
+│  │  ├─ main.cpp
+│  │  ├─ net/                  chỉ lớp này biết socket
+│  │  │  └─ Server.{h,cpp}     listen, poll, Connection{fd,inbuf,outbuf}, framing "\r\n"
+│  │  ├─ proto/                
+│  │  │  ├─ Message.h          struct Message{cmd, fields}
+│  │  │  ├─ Codec.{h,cpp}      parse / format một dòng
+│  │  │  └─ Codes.h            Cmd, ErrorCode 0..16, State
+│  │  ├─ core/                 luật protocol + game, không biết socket
+│  │  │  ├─ Hub.{h,cpp}        onMessage / onClose, bảng lệnh, check 12 rồi 10
+│  │  │  ├─ Registry.{h,cpp}   Session, Room, hàng đợi RAND theo game, Match
+│  │  │  ├─ auth.cpp           REGI, LOGI, LOGU
+│  │  │  ├─ info.cpp           PLST, RANK
+│  │  │  ├─ entry.cpp          RAND, RCAN, CROM, INVT, IACC, IDEC, DCAN
+│  │  │  └─ play.cpp           MOVE, RSGN
+│  │  ├─ game/
+│  │  │  ├─ IGame.h            applyMove -> code 14/15/16 + flips
+│  │  │  ├─ Gomoku.{h,cpp}
+│  │  │  ├─ Reversi.{h,cpp}
+│  │  │  └─ GameFactory.{h,cpp}
+│  │  ├─ store/
+│  │  │  ├─ UserStore.{h,cpp}  file -> RAM, ghi atomic (temp + rename)
+│  │  │  └─ Elo.{h,cpp}
+│  │  └─ util/
+│  │     └─ Logger.{h,cpp}     log message vào/ra + timestamp + connId
+│  └─ tests/                   Codec, Elo, Gomoku, Reversi, Hub (end-to-end, không cần socket)
+│
+└─ client/                     FRONTEND (JavaFX, Java 17+)
+   ├─ pom.xml
+   └─ src/main/java/netpro/
+      ├─ App.java
+      ├─ protocol/             Codec, Cmd, Code, ServerMsg
+      │                        (sealed: Response, Invi, Idcl, Strt, Oppm, Skip, Over)
+      ├─ net/
+      │  └─ Connection         socket + reader thread, writeLine synchronized
+      ├─ app/                  không biết JavaFX
+      │  ├─ GameClient         request() -> CompletableFuture<Response>, listener cho push
+      │  └─ SessionState       CONNECTED/LOBBY/... chỉ để bật/tắt nút
+      └─ ui/                   chỉ lớp này chuyển luồng
+         ├─ Fx                 chỗ duy nhất gọi Platform.runLater
+         ├─ SceneManager
+         ├─ controller/        Login, Lobby, Room, Game, Rank
+         └─ board/             BoardView, GomokuBoard, ReversiBoard
