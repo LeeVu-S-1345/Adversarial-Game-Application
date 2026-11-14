@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="netpro.client.ui.controller.LobbyController"
+            prefWidth="820" prefHeight="520">
+    <padding><Insets top="12" right="12" bottom="12" left="12"/></padding>
+
+    <top>
+        <HBox spacing="10" alignment="CENTER_LEFT">
+            <padding><Insets bottom="10"/></padding>
+            <Label fx:id="whoLabel" style="-fx-font-size: 18px;"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button text="Làm mới" onAction="#onRefresh"/>
+            <Button fx:id="logoutButton" text="Đăng xuất" onAction="#onLogout"/>
+        </HBox>
+    </top>
+
+    <left>
+        <VBox spacing="6" prefWidth="210">
+            <Label text="Người chơi trong sảnh"/>
+            <ListView fx:id="playerList" VBox.vgrow="ALWAYS"/>
+        </VBox>
+    </left>
+
+    <center>
+        <VBox spacing="10" alignment="TOP_CENTER">
+            <padding><Insets left="12" right="12"/></padding>
+            <ComboBox fx:id="gameBox" maxWidth="Infinity"/>
+            <HBox spacing="8" alignment="CENTER">
+                <Button fx:id="randButton" text="Ghép ngẫu nhiên" onAction="#onRand"/>
+                <Button fx:id="cancelRandButton" text="Hủy ghép" onAction="#onCancelRand"/>
+            </HBox>
+            <HBox spacing="8" alignment="CENTER">
+                <Button fx:id="createRoomButton" text="Tạo phòng" onAction="#onCreateRoom"/>
+                <Button fx:id="inviteButton" text="Mời người đã chọn" onAction="#onInvite"/>
+                <Button fx:id="cancelRoomButton" text="Hủy phòng" onAction="#onCancelRoom"/>
+            </HBox>
+            <Label text="Lời mời nhận được"/>
+            <ListView fx:id="inviteList" prefHeight="150"/>
+            <HBox spacing="8" alignment="CENTER">
+                <Button fx:id="acceptButton" text="Chấp nhận" onAction="#onAccept"/>
+                <Button fx:id="declineButton" text="Từ chối" onAction="#onDecline"/>
+            </HBox>
+            <Label fx:id="statusLabel" wrapText="true"/>
+        </VBox>
+    </center>
+
+    <right>
+        <VBox spacing="6" prefWidth="210">
+            <Label text="Bảng xếp hạng (top 10)"/>
+            <ListView fx:id="rankList" VBox.vgrow="ALWAYS"/>
+        </VBox>
+    </right>
+</BorderPane>

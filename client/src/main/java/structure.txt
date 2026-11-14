@@ -1,0 +1,15 @@
+client/src/main/java/netpro/
+├─ App.java
+├─ protocol/        Codec, Cmd, Code, ServerMsg (sealed: Response, Invi, Idcl, Strt, Oppm, Skip, Over)
+├─ net/
+│  └─ Connection    socket + reader thread, writeLine synchronized, callback onClosed
+├─ app/             không biết JavaFX
+│  ├─ GameClient    request() -> CompletableFuture<Response>, push listener, giữ SessionState
+│  ├─ SessionState
+│  └─ game/         (MỚI) logic ván đấu phía client, test được không cần UI
+│     ├─ GameSession    gameType, myNo, tên đối thủ, lượt hiện tại, lastMover
+│     └─ BoardModel     int[][] cells, apply(r, c, player, flips)
+└─ ui/
+   ├─ Fx, SceneManager
+   ├─ controller/   Login, Lobby, Room, Game, Rank
+   └─ board/        BoardView, GomokuBoard, ReversiBoard   (chỉ vẽ + bắt click)

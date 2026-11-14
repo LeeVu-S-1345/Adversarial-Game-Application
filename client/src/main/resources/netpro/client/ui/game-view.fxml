@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="netpro.client.ui.controller.GameController">
+    <padding><Insets top="12" right="12" bottom="12" left="12"/></padding>
+
+    <top>
+        <VBox spacing="4" alignment="CENTER">
+            <padding><Insets bottom="8"/></padding>
+            <Label fx:id="infoLabel"/>
+            <Label fx:id="turnLabel" style="-fx-font-size: 18px;"/>
+        </VBox>
+    </top>
+
+    <center>
+        <StackPane fx:id="boardHolder"/>
+    </center>
+
+    <bottom>
+        <VBox spacing="8" alignment="CENTER">
+            <padding><Insets top="8"/></padding>
+            <Label fx:id="resultLabel" style="-fx-font-size: 16px;" wrapText="true"/>
+            <HBox spacing="10" alignment="CENTER">
+                <Button fx:id="resignButton" text="Đầu hàng" onAction="#onResign"/>
+                <Button fx:id="backButton" text="Về sảnh" onAction="#onBack"/>
+            </HBox>
+        </VBox>
+    </bottom>
+</BorderPane>
