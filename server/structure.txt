@@ -19,7 +19,7 @@ netpro-game/
 │  │  │  ├─ Registry.{h,cpp}   Session, Room, hàng đợi RAND theo game, Match
 │  │  │  ├─ auth.cpp           REGI, LOGI, LOGU
 │  │  │  ├─ info.cpp           PLST, RANK
-│  │  │  ├─ entry.cpp          RAND, RCAN, CROM, INVT, IACC, IDEC, DCAN
+│  │  │  ├─ entry.cpp          RAND, RCAN, CROM, INVT, IACC, IDEC, DROM
 │  │  │  └─ play.cpp           MOVE, RSGN
 │  │  ├─ game/
 │  │  │  ├─ IGame.h            applyMove -> code 14/15/16 + flips

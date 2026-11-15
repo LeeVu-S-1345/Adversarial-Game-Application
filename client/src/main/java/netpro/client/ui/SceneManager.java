@@ -47,8 +47,10 @@ public class SceneManager {
     /** Luôn chạy trên FX thread (App bọc bằng Fx.run). */
     public void onPush(List<String> msg) {
         if (msg.get(0).equals("STRT")) {
-            // STRT|gameType|soNguoiChoi|tenDoiThu
-            client.setGame(new GameSession(msg.get(1), Integer.parseInt(msg.get(2)), msg.get(3)));
+            // STRT|<game>|<side>|<opponent>|<rows>,<cols>
+            int[] size = GameSession.parsePos(msg.get(4));
+            client.setGame(new GameSession(msg.get(1), Integer.parseInt(msg.get(2)), msg.get(3),
+                    size[0], size[1]));
             show("game-view.fxml");
         } else if (current != null) {
             current.onPush(msg);

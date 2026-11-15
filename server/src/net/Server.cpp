@@ -27,7 +27,8 @@ bool setNonBlocking(int fd) {
 
 }  // namespace
 
-Server::Server(core::Hub& hub, std::uint16_t port) : hub_(hub), port_(port) {}
+Server::Server(core::Hub& hub, util::Logger& log, std::uint16_t port)
+    : hub_(hub), log_(log), port_(port) {}
 
 Server::~Server() {
     for (auto& [fd, c] : conns_) close(fd);
@@ -102,13 +103,19 @@ void Server::run() {
 
 void Server::acceptClients() {
     while (true) {
-        int fd = accept(listenFd_, nullptr, nullptr);
+        sockaddr_in peer{};
+        socklen_t len = sizeof(peer);
+        int fd = accept(listenFd_, reinterpret_cast<sockaddr*>(&peer), &len);
         if (fd < 0) break;  // EAGAIN: hết kết nối chờ
         if (!setNonBlocking(fd)) {
             close(fd);
             continue;
         }
         conns_.emplace(fd, Connection{fd, {}, {}});
+
+        char ip[INET_ADDRSTRLEN] = "?";
+        inet_ntop(AF_INET, &peer.sin_addr, ip, sizeof(ip));
+        log_.log(fd, "CONNECT", std::string(ip) + ":" + std::to_string(ntohs(peer.sin_port)));
     }
 }
 
@@ -125,6 +132,8 @@ bool Server::readFrom(Connection& c) {
     while ((pos = c.inbuf.find("\r\n")) != std::string::npos) {
         std::string line = c.inbuf.substr(0, pos);
         c.inbuf.erase(0, pos + 2);
+        if (line.empty()) continue;      // dòng rỗng: bỏ qua, không trả lời
+        log_.log(c.fd, "RECV", line);    // ghi trước khi xử lý, kể cả dòng sẽ bị trả lỗi
         if (auto msg = proto::parseLine(line)) {
             core::Out out;
             hub_.onMessage(c.fd, *msg, out);
@@ -146,6 +155,7 @@ void Server::dispatch(const core::Out& out) {
     for (const auto& item : out) {
         auto it = conns_.find(item.conn);
         if (it == conns_.end()) continue;  // client đã đi
+        log_.log(item.conn, "SEND", item.line);  // cả response lẫn push
         it->second.outbuf += item.line;
         it->second.outbuf += "\r\n";
     }
@@ -157,6 +167,7 @@ void Server::closeConn(int fd) {
     hub_.onClose(fd, out);
     close(fd);
     conns_.erase(fd);
+    log_.log(fd, "CLOSE");
     dispatch(out);  // gửi thông báo cho những người còn lại (vd OVER cho đối thủ)
 }
 

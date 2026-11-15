@@ -11,6 +11,8 @@ class Gomoku : public IGame {
 public:
     explicit Gomoku(int size = 15);
 
+    int rows() const override { return size_; }
+    int cols() const override { return size_; }
     int currentPlayer() const override { return turn_; }
     MoveResult applyMove(int player, Pos pos) override;
 

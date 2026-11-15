@@ -88,5 +88,8 @@
         <StackPane.margin><Insets left="24" bottom="18"/></StackPane.margin>
         <Circle fx:id="serverDot" radius="6"/>
         <Label fx:id="serverLabel" styleClass="server-label"/>
+        <!-- Địa chỉ server "host:port"; Enter để kết nối lại -->
+        <TextField fx:id="serverField" styleClass="server-field" promptText="host:port"
+                   prefWidth="190" onAction="#onServerChanged"/>
     </HBox>
 </StackPane>

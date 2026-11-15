@@ -11,6 +11,8 @@ class Reversi : public IGame {
 public:
     Reversi();
 
+    int rows() const override { return N; }
+    int cols() const override { return N; }
     int currentPlayer() const override { return turn_; }
     MoveResult applyMove(int player, Pos pos) override;
 

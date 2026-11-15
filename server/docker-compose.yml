@@ -1,0 +1,26 @@
+# PostgreSQL cho server (tùy chọn; không có thì server lưu bằng file users.db).
+#   docker compose up -d        bật
+#   docker compose down         tắt (dữ liệu vẫn giữ trong volume)
+#   docker compose down -v      tắt và XÓA dữ liệu
+# Server kết nối bằng:
+#   export PG_CONNINFO="host=localhost port=5432 dbname=netpro user=netpro password=netpro"
+services:
+  db:
+    image: postgres:16
+    container_name: netpro-db
+    environment:
+      POSTGRES_DB: netpro
+      POSTGRES_USER: netpro
+      POSTGRES_PASSWORD: netpro
+    ports:
+      - "5432:5432"
+    volumes:
+      - netpro-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U netpro -d netpro"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+volumes:
+  netpro-data:

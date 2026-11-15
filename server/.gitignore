@@ -20,3 +20,7 @@ compile_commands.json
 # IDE
 .vscode/
 .idea/
+# Runtime data
+users.db
+users.db.tmp
+server.log

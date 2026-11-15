@@ -21,7 +21,7 @@
 
     <left>
         <VBox spacing="6" prefWidth="210">
-            <Label text="Người chơi trong sảnh"/>
+            <Label text="Người chơi online"/>
             <ListView fx:id="playerList" VBox.vgrow="ALWAYS"/>
         </VBox>
     </left>
@@ -51,7 +51,7 @@
 
     <right>
         <VBox spacing="6" prefWidth="210">
-            <Label text="Bảng xếp hạng (top 10)"/>
+            <Label fx:id="rankTitle" text="Bảng xếp hạng"/>
             <ListView fx:id="rankList" VBox.vgrow="ALWAYS"/>
         </VBox>
     </right>

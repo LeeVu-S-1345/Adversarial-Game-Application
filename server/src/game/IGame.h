@@ -28,6 +28,10 @@ class IGame {
 public:
     virtual ~IGame() = default;
 
+    // Kích thước bàn cờ, gửi cho client trong STRT.
+    virtual int rows() const = 0;
+    virtual int cols() const = 0;
+
     // Người sẽ đi nước kế tiếp: 1 (đi trước) hoặc 2.
     virtual int currentPlayer() const = 0;
 

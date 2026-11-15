@@ -6,14 +6,13 @@
 namespace store {
 
 EloResult updateElo(int ratingA, int ratingB, double scoreA, int k) {
-    // Xác suất A thắng theo công thức Elo.
+    // Điểm kỳ vọng của A theo công thức Elo.
     const double expectedA = 1.0 / (1.0 + std::pow(10.0, (ratingB - ratingA) / 400.0));
-    const double scoreB = 1.0 - scoreA;
-    const double expectedB = 1.0 - expectedA;
 
     EloResult r;
-    r.newA = static_cast<int>(std::lround(ratingA + k * (scoreA - expectedA)));
-    r.newB = static_cast<int>(std::lround(ratingB + k * (scoreB - expectedB)));
+    r.delta = static_cast<int>(std::lround(k * (scoreA - expectedA)));  // lround: .5 ra xa 0
+    r.newA = ratingA + r.delta;
+    r.newB = ratingB - r.delta;
     return r;
 }
 

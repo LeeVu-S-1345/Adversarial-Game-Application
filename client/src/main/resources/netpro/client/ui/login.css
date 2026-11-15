@@ -123,3 +123,12 @@
 .status-label { -fx-text-fill: #ff8a8a; -fx-font-size: 13px; -fx-min-height: 18; }
 .status-label.ok { -fx-text-fill: #6ee7a8; }
 .server-label { -fx-text-fill: #cfd9f5; -fx-font-size: 13px; }
+.server-field {
+    -fx-background-color: rgba(255, 255, 255, 0.10);
+    -fx-background-radius: 8;
+    -fx-border-color: rgba(160, 185, 240, 0.45);
+    -fx-border-radius: 8;
+    -fx-text-fill: white;
+    -fx-prompt-text-fill: rgba(207, 217, 245, 0.6);
+    -fx-font-size: 13px;
+}
