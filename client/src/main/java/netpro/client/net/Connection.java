@@ -1,20 +1,25 @@
 package netpro.client.net;
 
 import java.io.*;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.function.Consumer;
 
 public class Connection implements AutoCloseable {
+    private static final int CONNECT_TIMEOUT_MS = 5000;
+
     private final Socket socket;
     private final BufferedReader in;
     private final BufferedWriter out;
     private final Consumer<String> onLine;
-    private final Runnable onClosed;
+    private final Consumer<Connection> onClosed;
 
-    public Connection(String host, int port, Consumer<String> onLine, Runnable onClosed)
+    public Connection(String host, int port, Consumer<String> onLine, Consumer<Connection> onClosed)
             throws IOException {
-        this.socket = new Socket(host, port);
+        this.socket = new Socket();
+        // Có timeout: gõ sai địa chỉ thì báo lỗi sau vài giây thay vì treo cả phút.
+        this.socket.connect(new InetSocketAddress(host, port), CONNECT_TIMEOUT_MS);
         this.in = new BufferedReader(
                 new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
         this.out = new BufferedWriter(
@@ -34,6 +39,7 @@ public class Connection implements AutoCloseable {
         out.flush();
     }
 
+    // TCP là luồng byte: readLine gom byte cho tới khi đủ một dòng kết thúc bằng "\r\n".
     private void readLoop() {
         try {
             String line;
@@ -41,7 +47,7 @@ public class Connection implements AutoCloseable {
         } catch (IOException ignored) {
             // socket đóng
         } finally {
-            onClosed.run();
+            onClosed.accept(this);
         }
     }
 

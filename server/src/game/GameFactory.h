@@ -7,7 +7,9 @@
 
 namespace game {
 
-// type: "GOMOKU" hoặc "REVERSI" (đổi chuỗi cho khớp tên game trong protocol).
+// type: "caro" hoặc "reversi" (đúng <game> trong docs/protocol.md, phân biệt hoa thường).
+bool isKnownGame(const std::string& type);
+
 // Trả nullptr nếu không nhận ra.
 std::unique_ptr<IGame> createGame(const std::string& type);
 

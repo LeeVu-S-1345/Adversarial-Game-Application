@@ -34,10 +34,10 @@ void Registry::eraseSession(ConnId conn) {
     sessions_.erase(it);
 }
 
-std::vector<const Session*> Registry::lobbyPlayers() const {
+std::vector<const Session*> Registry::onlinePlayers() const {
     std::vector<const Session*> result;
     for (const auto& [conn, s] : sessions_) {
-        if (s.state == State::LOBBY) result.push_back(&s);
+        if (s.state != State::CONNECTED) result.push_back(&s);
     }
     return result;
 }
@@ -56,32 +56,34 @@ void Registry::leaveQueue(Session& s) {
 // ---- Phòng ----
 
 Room& Registry::createRoom(ConnId host, const std::string& gameType) {
-    Room& r = rooms_[host];
+    const int id = nextRoomId_++;
+    Room& r = rooms_[id];
+    r.id = id;
     r.host = host;
     r.gameType = gameType;
     return r;
 }
 
-Room* Registry::findRoom(ConnId host) {
-    auto it = rooms_.find(host);
+Room* Registry::findRoom(int roomId) {
+    auto it = rooms_.find(roomId);
     return it == rooms_.end() ? nullptr : &it->second;
 }
 
-void Registry::eraseRoom(ConnId host) { rooms_.erase(host); }
+void Registry::eraseRoom(int roomId) { rooms_.erase(roomId); }
 
 // ---- Lời mời ----
 
-bool Registry::hasInvitation(ConnId host, ConnId invitee) const {
+bool Registry::hasInvitation(int roomId, ConnId invitee) const {
     return std::any_of(invites_.begin(), invites_.end(), [&](const Invitation& i) {
-        return i.host == host && i.invitee == invitee;
+        return i.roomId == roomId && i.invitee == invitee;
     });
 }
 
-void Registry::addInvitation(ConnId host, ConnId invitee) { invites_.push_back({host, invitee}); }
+void Registry::addInvitation(int roomId, ConnId invitee) { invites_.push_back({roomId, invitee}); }
 
-bool Registry::removeInvitation(ConnId host, ConnId invitee) {
+bool Registry::removeInvitation(int roomId, ConnId invitee) {
     for (auto it = invites_.begin(); it != invites_.end(); ++it) {
-        if (it->host == host && it->invitee == invitee) {
+        if (it->roomId == roomId && it->invitee == invitee) {
             invites_.erase(it);
             return true;
         }
@@ -89,36 +91,29 @@ bool Registry::removeInvitation(ConnId host, ConnId invitee) {
     return false;
 }
 
-std::vector<ConnId> Registry::takeInvitesTo(ConnId invitee) {
-    std::vector<ConnId> hosts;
+std::vector<int> Registry::takeInvitesTo(ConnId invitee) {
+    std::vector<int> rooms;
     for (auto it = invites_.begin(); it != invites_.end();) {
         if (it->invitee == invitee) {
-            hosts.push_back(it->host);
+            rooms.push_back(it->roomId);
             it = invites_.erase(it);
         } else {
             ++it;
         }
     }
-    return hosts;
+    return rooms;
 }
 
-std::vector<ConnId> Registry::takeInvitesFrom(ConnId host) {
-    std::vector<ConnId> invitees;
-    for (auto it = invites_.begin(); it != invites_.end();) {
-        if (it->host == host) {
-            invitees.push_back(it->invitee);
-            it = invites_.erase(it);
-        } else {
-            ++it;
-        }
-    }
-    return invitees;
+void Registry::dropInvitesOf(int roomId) {
+    invites_.erase(std::remove_if(invites_.begin(), invites_.end(),
+                                  [&](const Invitation& i) { return i.roomId == roomId; }),
+                   invites_.end());
 }
 
 // ---- Trận đấu ----
 
 Match& Registry::createMatch(const std::string& gameType, ConnId p1, ConnId p2,
-                             std::unique_ptr<game::IGame> engine) {
+                             std::unique_ptr<game::IGame> engine, int roomId) {
     const int id = nextMatchId_++;
     Match& m = matches_[id];
     m.id = id;
@@ -126,6 +121,7 @@ Match& Registry::createMatch(const std::string& gameType, ConnId p1, ConnId p2,
     m.players[0] = p1;
     m.players[1] = p2;
     m.engine = std::move(engine);
+    m.roomId = roomId;
     return m;
 }
 

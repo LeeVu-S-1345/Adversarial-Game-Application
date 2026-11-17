@@ -5,6 +5,7 @@ import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
+import netpro.client.Config;
 import netpro.client.app.GameClient;
 import netpro.client.protocol.Code;
 import netpro.client.ui.Fx;
@@ -17,9 +18,9 @@ import java.util.prefs.Preferences;
 
 public class LoginController {
     @FXML private javafx.scene.layout.HBox userBox, passBox;
-    @FXML private TextField userField, passText;
+    @FXML private TextField userField, passText, serverField;
     @FXML private PasswordField passField;
-    @FXML private CheckBox rememberBox;
+    @FXML private CheckBox rememberBox;   // có thể null: ô này đang bị tắt trong login-view.fxml
     @FXML private Button loginButton, registerButton, eyeButton;
     @FXML private Label statusLabel, serverLabel;
     @FXML private Circle serverDot;
@@ -50,9 +51,10 @@ public class LoginController {
         String last = prefs.get(PREF_USER, "");
         if (!last.isEmpty()) {
             userField.setText(last);
-            rememberBox.setSelected(true);
+            if (rememberBox != null) rememberBox.setSelected(true);
         }
 
+        serverField.setText(client.getServer().toString());
         checkServer();
     }
 
@@ -86,6 +88,27 @@ public class LoginController {
                 }));
     }
 
+    // Đọc ô địa chỉ server ("host" hoặc "host:port"). False nếu sai dạng.
+    private boolean applyServerField() {
+        try {
+            Config.Address a = Config.parseAddress(serverField.getText());
+            client.setServer(a);   // đổi địa chỉ thì ngắt kết nối cũ
+            Config.saveAddress(a);
+            serverField.setText(a.toString());
+            return true;
+        } catch (IllegalArgumentException e) {
+            setServer("Server: Bad address", Color.web("#ef4444"));
+            error("Server address must be host or host:port");
+            return false;
+        }
+    }
+
+    @FXML
+    private void onServerChanged() {
+        statusLabel.setText("");
+        if (applyServerField()) checkServer();
+    }
+
     private void setServer(String text, Color dot) {
         serverLabel.setText(text);
         serverDot.setFill(dot);
@@ -106,7 +129,7 @@ public class LoginController {
     @FXML
     private void onForgot() {
         // Protocol hiện chưa có lệnh đổi mật khẩu
-        error("This function ís not supported currently");
+        error("This function is not supported currently");
     }
 
     @FXML private void onLogin()    { submit("LOGI"); }
@@ -116,14 +139,20 @@ public class LoginController {
         String user = userField.getText().trim();
         String pass = passField.getText();
         if (user.isEmpty() || pass.isEmpty()) {
-            error("Incorrect username or password");
+            error("Enter username and password");
             return;
         }
-        // '|' là ký tự phân tách field của protocol
-        if (user.contains("|") || pass.contains("|")) {
-            error("Do not using '|'");
+        // "Validate input locally" (use case 1), cùng quy tắc với mã 11 của server:
+        // username 1-32 chữ, số, '_'; password 1-64 ký tự ASCII in được, không dấu cách, không '|'.
+        if (!user.matches("[A-Za-z0-9_]{1,32}")) {
+            error("Username: 1-32 letters, digits or '_'");
             return;
         }
+        if (!pass.matches("[\\x21-\\x7E&&[^|]]{1,64}")) {
+            error("Password: 1-64 characters, no spaces, no '|'");
+            return;
+        }
+        if (!applyServerField()) return;
 
         setBusy(true);
         statusLabel.setText("");
@@ -149,8 +178,10 @@ public class LoginController {
                     if (cmd.equals("REGI")) {
                         ok("Register successfully. Please login!");
                     } else {
-                        if (rememberBox.isSelected()) prefs.put(PREF_USER, user);
-                        else prefs.remove(PREF_USER);
+                        if (rememberBox != null) {
+                            if (rememberBox.isSelected()) prefs.put(PREF_USER, user);
+                            else prefs.remove(PREF_USER);
+                        }
                         client.setUsername(user);
                         scenes.show("lobby-view.fxml");
                     }

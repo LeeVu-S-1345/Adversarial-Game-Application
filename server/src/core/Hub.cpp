@@ -6,12 +6,14 @@
 namespace core {
 
 namespace C = proto::Cmd;
+namespace P = proto::Push;
 using S = State;
 
 Hub::Hub(store::UserStore& users) : users_(users) {}
 
 void Hub::initTable() {
-    // Bảng lệnh: lệnh -> (state được phép, số field, handler)
+    // Bảng lệnh: lệnh -> (state được phép, số field, handler).
+    // MOVE có 1 field "x,y"; việc "exactly two fields" (x và y) do handleMove kiểm tra.
     table_ = {
         {C::REGI, {{S::CONNECTED}, 2, &Hub::handleRegi}},
         {C::LOGI, {{S::CONNECTED}, 2, &Hub::handleLogi}},
@@ -27,7 +29,7 @@ void Hub::initTable() {
         {C::RCAN, {{S::MATCHING}, 0, &Hub::handleRcan}},
 
         {C::INVT, {{S::IN_ROOM}, 1, &Hub::handleInvt}},
-        {C::DCAN, {{S::IN_ROOM}, 0, &Hub::handleDcan}},
+        {C::DROM, {{S::IN_ROOM}, 0, &Hub::handleDrom}},
 
         {C::MOVE, {{S::IN_GAME}, 1, &Hub::handleMove}},
         {C::RSGN, {{S::IN_GAME}, 0, &Hub::handleRsgn}},
@@ -52,14 +54,15 @@ void Hub::onMessage(ConnId conn, const proto::Message& msg, Out& out) {
 
     Session& s = reg_.session(conn);
 
+    // Thứ tự kiểm tra chung (mục 8): lệnh lạ (10) -> state (12) -> số field (10)
+    // -> kiểm tra riêng của lệnh. Chỉ báo lỗi đầu tiên.
     auto it = table_.find(msg.cmd);
     if (it == table_.end()) {
-        reply(conn, msg.cmd, ErrorCode::BAD_FIELDS, out);  // lệnh lạ: chỉnh theo doc nếu có mã riêng
+        reply(conn, msg.cmd, ErrorCode::BAD_FIELDS, out);  // Appendix A, A2
         return;
     }
     const CmdSpec& spec = it->second;
 
-    // Thứ tự kiểm tra: state (12) trước, số field (10) sau.
     if (std::find(spec.allowedStates.begin(), spec.allowedStates.end(), s.state) ==
         spec.allowedStates.end()) {
         reply(conn, msg.cmd, ErrorCode::BAD_STATE, out);
@@ -73,26 +76,26 @@ void Hub::onMessage(ConnId conn, const proto::Message& msg, Out& out) {
     (this->*spec.handler)(s, msg, out);
 }
 
+// Mất kết nối (mục 12). Không có reply nào cho người đã rớt.
 void Hub::onClose(ConnId conn, Out& out) {
     Session* s = reg_.findSession(conn);
     if (!s) return;
 
     switch (s->state) {
+        case S::LOBBY:
+            cancelInvitesOf(*s, out);  // các chủ phòng đang mời người này nhận IDCL
+            break;
         case S::MATCHING:
             reg_.leaveQueue(*s);
             break;
         case S::IN_ROOM:
-            reg_.takeInvitesFrom(conn);
-            reg_.eraseRoom(conn);
+            closeRoomOf(*s);  // người được mời không được báo; IACC/IDEC sau đó nhận mã 7
             break;
         case S::IN_GAME:
-            // Rớt mạng giữa trận = đầu hàng. Không reply, OVER chỉ gửi cho đối thủ.
+            // Rớt mạng giữa trận = thua. OVER chỉ gửi cho đối thủ.
             if (Match* m = reg_.findMatch(s->matchId)) {
                 finishMatch(*m, 3 - m->playerNo(conn), conn, out);
             }
-            break;
-        case S::LOBBY:
-            cancelInvitesOf(*s, out);
             break;
         case S::CONNECTED:
             break;
@@ -101,9 +104,18 @@ void Hub::onClose(ConnId conn, Out& out) {
 }
 
 void Hub::cancelInvitesOf(Session& invitee, Out& out) {
-    for (ConnId host : reg_.takeInvitesTo(invitee.conn)) {
-        push(host, "IDCL", {invitee.username}, out);
+    for (int roomId : reg_.takeInvitesTo(invitee.conn)) {
+        if (Room* room = reg_.findRoom(roomId)) {
+            push(room->host, P::IDCL, {invitee.username}, out);
+        }
     }
+}
+
+void Hub::closeRoomOf(Session& s) {
+    if (s.roomId == 0) return;
+    reg_.dropInvitesOf(s.roomId);
+    reg_.eraseRoom(s.roomId);
+    s.roomId = 0;
 }
 
 }  // namespace core

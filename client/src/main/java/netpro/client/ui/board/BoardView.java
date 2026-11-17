@@ -4,6 +4,7 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import netpro.client.app.game.GameSession;
+import netpro.client.protocol.Wire;
 
 import java.util.function.BiConsumer;
 
@@ -31,7 +32,7 @@ public class BoardView extends Canvas {
         GraphicsContext gc = getGraphicsContext2D();
         double w = getWidth(), h = getHeight();
         int n = g.size();
-        boolean gomoku = g.gameType().equals("GOMOKU");
+        boolean gomoku = g.gameType().equals(Wire.CARO);
 
         gc.setFill(gomoku ? Color.web("#E8C17A") : Color.web("#2E8B57"));
         gc.fillRect(0, 0, w, h);

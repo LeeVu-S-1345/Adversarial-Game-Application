@@ -1,49 +1,34 @@
 // server/src/store/UserStore.h
 #pragma once
-#include <cstddef>
 #include <string>
 #include <vector>
 
-struct pg_conn;  // libpq: PGconn là typedef của struct pg_conn (khai báo ở phạm vi toàn cục)
-
 namespace store {
 
-struct User {
+inline constexpr int kInitialElo = 1000;
+
+struct RankEntry {
     std::string name;
-    std::string password;  // lưu thẳng (đủ cho bài tập); muốn an toàn thì băm trước khi lưu
-    int elo = 1000;
+    int elo = kInitialElo;
 };
 
-// Lưu tài khoản và điểm Elo trong PostgreSQL (qua libpq).
-// Giao diện giữ nguyên như bản dùng file, nên core/ không phải sửa gì.
-// Lưu ý: mọi lệnh gọi libpq ở đây là đồng bộ (chặn). Với server một luồng và dữ liệu nhỏ
-// thì chấp nhận được; mỗi truy vấn thường chỉ mất vài mili giây.
+// Kho tài khoản và điểm Elo. Mỗi tài khoản có một điểm RIÊNG cho từng game
+// ("caro", "reversi"), đều bắt đầu từ 1000 (docs/protocol.md, mục 10).
+// core/ chỉ biết giao diện này; có hai cài đặt: FileUserStore và PgUserStore.
 class UserStore {
 public:
-    // conninfo: chuỗi kết nối libpq, vd "host=localhost port=5432 dbname=netpro user=netpro password=..."
-    explicit UserStore(std::string conninfo);
-    ~UserStore();
-    UserStore(const UserStore&) = delete;
-    UserStore& operator=(const UserStore&) = delete;
+    virtual ~UserStore() = default;
 
-    // Kết nối và tạo bảng users nếu chưa có. False nếu không kết nối được.
-    bool load();
+    // False nếu tên đã tồn tại (hoặc lỗi lưu trữ).
+    virtual bool create(const std::string& name, const std::string& password) = 0;
+    virtual bool checkPassword(const std::string& name, const std::string& password) const = 0;
 
-    // False nếu tên đã tồn tại (hoặc lỗi database; lỗi được in ra stderr).
-    bool create(const std::string& name, const std::string& password);
-    bool checkPassword(const std::string& name, const std::string& password) const;
+    // Điểm của `name` cho `game`; 1000 nếu không có user hoặc game lạ.
+    virtual int elo(const std::string& name, const std::string& game) const = 0;
+    virtual void setElo(const std::string& name, const std::string& game, int elo) = 0;
 
-    int elo(const std::string& name) const;  // 1000 nếu không có user
-    void setElo(const std::string& name, int elo);
-
-    // n người điểm cao nhất, giảm dần (cùng điểm thì theo tên).
-    std::vector<User> top(std::size_t n) const;
-
-private:
-    bool ensureConnected() const;  // thử nối lại nếu mất kết nối
-
-    std::string conninfo_;
-    pg_conn* conn_ = nullptr;
+    // MỌI tài khoản, xếp theo điểm của `game` giảm dần; bằng điểm thì theo tên tăng dần.
+    virtual std::vector<RankEntry> ranking(const std::string& game) const = 0;
 };
 
 }  // namespace store
