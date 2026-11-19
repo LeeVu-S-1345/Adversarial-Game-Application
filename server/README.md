@@ -20,7 +20,7 @@ Cần CMake 3.15+ và một trình biên dịch C++17, trên Linux hoặc macOS.
 
 | Biến môi trường | Ý nghĩa | Mặc định |
 |---|---|---|
-| `NETPRO_USERS_FILE` | File lưu tài khoản và Elo | `users.db` |
+| `NETPRO_USERS_FILE` | File lưu tài khoản, Elo và recovery code (mỗi dòng `name\|password\|eloCaro\|eloReversi\|recoveryCode`) | `users.db` |
 | `NETPRO_LOG_FILE` | File log message nhận và gửi (log cũng in ra màn hình) | `server.log` |
 | `PG_CONNINFO` | Nếu được đặt và server build kèm libpq: lưu bằng PostgreSQL thay cho file, ví dụ `host=localhost dbname=netpro user=netpro password=netpro` | không đặt |
 
@@ -51,7 +51,7 @@ Không có PostgreSQL thì server lưu bằng file `users.db`, không cần làm
 
    Màn hình in `Storage: PostgreSQL`. Bỏ `PG_CONNINFO` thì server quay về lưu bằng file.
 
-Xem dữ liệu bằng extension PostgreSQL của VS Code: host `localhost`, port `5432`, database `netpro`, user `netpro`, password `netpro`, bảng `users` (cột `elo_caro`, `elo_reversi`).
+Xem dữ liệu bằng extension PostgreSQL của VS Code: host `localhost`, port `5432`, database `netpro`, user `netpro`, password `netpro`, bảng `users` (cột `elo_caro`, `elo_reversi`, `recovery_code`).
 
 Bảng cũ (chỉ có cột `elo`) được tự thêm hai cột mới, mỗi game bắt đầu lại từ 1000; cột `elo` cũ để nguyên, không dùng.
 

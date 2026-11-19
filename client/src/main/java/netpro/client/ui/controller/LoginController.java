@@ -3,26 +3,35 @@ package netpro.client.ui.controller;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
 import javafx.scene.control.*;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.ClipboardContent;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import netpro.client.Config;
 import netpro.client.app.GameClient;
 import netpro.client.protocol.Code;
+import netpro.client.ui.Dialogs;
 import netpro.client.ui.Fx;
+import netpro.client.ui.LoginArt;
 import netpro.client.ui.SceneManager;
+import netpro.client.ui.Theme;
 
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.prefs.Preferences;
 
+/** Scenario 1: Register (1), Log in (2), Reset Password (16). docs/ui-spec.md, section 3. */
 public class LoginController {
-    @FXML private javafx.scene.layout.HBox userBox, passBox;
-    @FXML private TextField userField, passText, serverField;
-    @FXML private PasswordField passField;
-    @FXML private CheckBox rememberBox;   // có thể null: ô này đang bị tắt trong login-view.fxml
-    @FXML private Button loginButton, registerButton, eyeButton;
-    @FXML private Label statusLabel, serverLabel;
+    @FXML private StackPane root, artHolder;
+    @FXML private VBox loginForm, resetForm;
+    @FXML private TextField userField, passText, serverField, rsUser, rsCode;
+    @FXML private PasswordField passField, rsNew, rsConfirm;
+    @FXML private CheckBox rememberBox;
+    @FXML private Button loginButton, registerButton, resetButton;
+    @FXML private Label statusLabel, rsStatus, serverLabel;
     @FXML private Circle serverDot;
 
     private static final String PREF_USER = "lastUser";
@@ -39,66 +48,55 @@ public class LoginController {
 
     @FXML
     private void initialize() {
-        // Hai ô mật khẩu dùng chung nội dung
+        artHolder.getChildren().add(new LoginArt());
         passText.textProperty().bindBidirectional(passField.textProperty());
 
-        // Viền sáng khi ô đang được focus
-        highlightOnFocus(userField, userBox);
-        highlightOnFocus(passField, passBox);
-        highlightOnFocus(passText, passBox);
-
-        // Điền sẵn username nếu lần trước đã tick "Ghi nhớ"
         String last = prefs.get(PREF_USER, "");
-        if (!last.isEmpty()) {
-            userField.setText(last);
-            if (rememberBox != null) rememberBox.setSelected(true);
-        }
+        rememberBox.setSelected(!last.isEmpty());
+        userField.setText(!client.getUsername().isEmpty() ? client.getUsername() : last);
 
         serverField.setText(client.getServer().toString());
         checkServer();
     }
 
-    private void highlightOnFocus(Node input, Node box) {
-        input.focusedProperty().addListener((obs, was, now) -> {
-            if (now) {
-                if (!box.getStyleClass().contains("focused")) box.getStyleClass().add("focused");
-            } else if (!passField.isFocused() && !passText.isFocused() && !userField.isFocused()) {
-                box.getStyleClass().remove("focused");
-            } else {
-                // chỉ gỡ viền của đúng ô vừa mất focus
-                if (box == userBox && !userField.isFocused()) box.getStyleClass().remove("focused");
-                if (box == passBox && !passField.isFocused() && !passText.isFocused())
-                    box.getStyleClass().remove("focused");
-            }
-        });
+    /** Called by App when the connection closed by itself (docs/ui-spec.md, section 7). */
+    public void showConnectionLost(boolean duringGame) {
+        setServer(false);
+        String text = duringGame
+                ? "The connection to the server was lost during the game. The game counts as a loss. Please log in again."
+                : "The connection to the server was lost. Please log in again.";
+        Dialogs.show(root, "Connection lost", true, new Node[]{Dialogs.text(text)}, primary("OK"));
     }
 
-    // ---- Trạng thái server (góc dưới trái) ----
+    // ---------- server status ----------
 
     private void checkServer() {
-        setServer("Server: Connecting...", Color.web("#f5c542"));
+        serverLabel.setText("Server: Connecting…");
+        serverDot.setFill(Color.web("#c99a2e"));
         CompletableFuture
                 .runAsync(() -> {
                     try { client.connect(); }
                     catch (IOException e) { throw new CompletionException(e); }
                 })
-                .whenComplete((v, err) -> Fx.run(() -> {
-                    if (err == null) setServer("Server: Connected", Color.web("#22c55e"));
-                    else setServer("Server: Disconnected", Color.web("#ef4444"));
-                }));
+                .whenComplete((v, err) -> Fx.run(() -> setServer(err == null)));
     }
 
-    // Đọc ô địa chỉ server ("host" hoặc "host:port"). False nếu sai dạng.
+    private void setServer(boolean connected) {
+        serverLabel.setText(connected ? "Server: Connected" : "Server: Disconnected");
+        serverDot.setFill(connected ? Theme.FELT : Theme.RED);
+    }
+
+    /** Reads the "host" or "host:port" field. False if malformed. */
     private boolean applyServerField() {
         try {
             Config.Address a = Config.parseAddress(serverField.getText());
-            client.setServer(a);   // đổi địa chỉ thì ngắt kết nối cũ
+            client.setServer(a);   // a different address closes the old connection
             Config.saveAddress(a);
             serverField.setText(a.toString());
             return true;
         } catch (IllegalArgumentException e) {
-            setServer("Server: Bad address", Color.web("#ef4444"));
-            error("Server address must be host or host:port");
+            setServer(false);
+            error(statusLabel, "Server address must be host or host:port");
             return false;
         }
     }
@@ -109,12 +107,7 @@ public class LoginController {
         if (applyServerField()) checkServer();
     }
 
-    private void setServer(String text, Color dot) {
-        serverLabel.setText(text);
-        serverDot.setFill(dot);
-    }
-
-    // ---- Nút bấm ----
+    // ---------- log in / create an account ----------
 
     @FXML
     private void onToggleEye() {
@@ -124,82 +117,191 @@ public class LoginController {
         passField.setVisible(!show);
         passField.setManaged(!show);
         (show ? passText : passField).requestFocus();
+        (show ? passText : passField).end();
     }
 
-    @FXML
-    private void onForgot() {
-        // Protocol hiện chưa có lệnh đổi mật khẩu
-        error("This function is not supported currently");
-    }
-
-    @FXML private void onLogin()    { submit("LOGI"); }
+    @FXML private void onLogin() { submit("LOGI"); }
     @FXML private void onRegister() { submit("REGI"); }
+
+    private static boolean validName(String u) { return u.matches("[A-Za-z0-9_]{1,32}"); }
+    private static boolean validPass(String p) { return p.matches("[\\x21-\\x7E&&[^|]]{1,64}"); }
 
     private void submit(String cmd) {
         String user = userField.getText().trim();
         String pass = passField.getText();
         if (user.isEmpty() || pass.isEmpty()) {
-            error("Enter username and password");
+            error(statusLabel, cmd.equals("REGI") ? "Enter a username and password, then click Create an account"
+                    : "Enter username and password");
             return;
         }
-        // "Validate input locally" (use case 1), cùng quy tắc với mã 11 của server:
-        // username 1-32 chữ, số, '_'; password 1-64 ký tự ASCII in được, không dấu cách, không '|'.
-        if (!user.matches("[A-Za-z0-9_]{1,32}")) {
-            error("Username: 1-32 letters, digits or '_'");
+        // "Validate input locally" (use case 1): same rules as code 11 on the server
+        if (!validName(user)) {
+            error(statusLabel, "Username: 1-32 letters, digits or _");
             return;
         }
-        if (!pass.matches("[\\x21-\\x7E&&[^|]]{1,64}")) {
-            error("Password: 1-64 characters, no spaces, no '|'");
+        if (!validPass(pass)) {
+            error(statusLabel, "Password: 1-64 characters, no spaces, no |");
             return;
         }
         if (!applyServerField()) return;
 
         setBusy(true);
         statusLabel.setText("");
+        connectThen(cmd, user, pass).whenComplete((r, err) -> Fx.run(() -> {
+            setBusy(false);
+            if (err != null) {
+                setServer(false);
+                error(statusLabel, "Cannot connect to the server");
+                return;
+            }
+            setServer(true);
+            if (r.code() != 0) {
+                error(statusLabel, Code.message(r.code()));
+                return;
+            }
+            if (cmd.equals("REGI")) {
+                passField.clear();
+                // REGI|0|<recoveryCode>; a server without use case 16 replies REGI|0
+                if (!r.extra().isEmpty() && !r.extra().get(0).isEmpty()) showRecoveryCode(r.extra().get(0), true);
+                else ok(statusLabel, "Account created. Log in with your new password.");
+            } else {
+                if (rememberBox.isSelected()) prefs.put(PREF_USER, user);
+                else prefs.remove(PREF_USER);
+                client.setUsername(user);
+                scenes.show("lobby-view.fxml");
+            }
+        }));
+    }
 
-        CompletableFuture
-                .runAsync(() -> {   // connect() có thể chặn, không chạy trên FX thread
+    private CompletableFuture<GameClient.Response> connectThen(String cmd, String... fields) {
+        return CompletableFuture
+                .runAsync(() -> {   // connect() may block: never on the FX thread
                     try { client.connect(); }
                     catch (IOException e) { throw new CompletionException(e); }
                 })
-                .thenCompose(v -> client.request(cmd, user, pass))
-                .whenComplete((r, err) -> Fx.run(() -> {
-                    setBusy(false);
-                    if (err != null) {
-                        setServer("Server: Cannot connect", Color.web("#ef4444"));
-                        error("Cannot connect to server");
-                        return;
-                    }
-                    setServer("Server: Connected", Color.web("#22c55e"));
-                    if (r.code() != 0) {
-                        error(Code.message(r.code()));
-                        return;
-                    }
-                    if (cmd.equals("REGI")) {
-                        ok("Register successfully. Please login!");
-                    } else {
-                        if (rememberBox != null) {
-                            if (rememberBox.isSelected()) prefs.put(PREF_USER, user);
-                            else prefs.remove(PREF_USER);
-                        }
-                        client.setUsername(user);
-                        scenes.show("lobby-view.fxml");
-                    }
-                }));
+                .thenCompose(v -> client.request(cmd, fields));
     }
 
     private void setBusy(boolean busy) {
         loginButton.setDisable(busy);
         registerButton.setDisable(busy);
+        resetButton.setDisable(busy);
     }
 
-    private void error(String s) {
-        statusLabel.getStyleClass().remove("ok");
-        statusLabel.setText(s);
+    // ---------- reset password (use case 16) ----------
+
+    @FXML
+    private void onForgot() {
+        rsUser.setText(userField.getText().trim());
+        rsCode.clear();
+        rsNew.clear();
+        rsConfirm.clear();
+        rsStatus.setText("");
+        showReset(true);
+        (rsUser.getText().isEmpty() ? rsUser : rsCode).requestFocus();
     }
 
-    private void ok(String s) {
-        if (!statusLabel.getStyleClass().contains("ok")) statusLabel.getStyleClass().add("ok");
-        statusLabel.setText(s);
+    @FXML
+    private void onBackToLogin() {
+        statusLabel.setText("");
+        showReset(false);
+    }
+
+    private void showReset(boolean reset) {
+        resetForm.setVisible(reset);
+        resetForm.setManaged(reset);
+        loginForm.setVisible(!reset);
+        loginForm.setManaged(!reset);
+    }
+
+    @FXML
+    private void onReset() {
+        String user = rsUser.getText().trim();
+        String code = rsCode.getText().replaceAll("\\s+", "").toUpperCase();
+        String pass = rsNew.getText();
+        if (user.isEmpty() || code.isEmpty() || pass.isEmpty()) {
+            error(rsStatus, "Fill in all fields");
+            return;
+        }
+        if (!pass.equals(rsConfirm.getText())) {
+            error(rsStatus, "Passwords do not match");
+            return;
+        }
+        if (!validName(user) || !validPass(pass) || !code.matches("[A-Z0-9]{8}")) {
+            error(rsStatus, "Invalid username, code or password format");
+            return;
+        }
+        if (!applyServerField()) return;
+
+        setBusy(true);
+        rsStatus.setText("");
+        connectThen("RSPW", user, code, pass).whenComplete((r, err) -> Fx.run(() -> {
+            setBusy(false);
+            if (err != null) {
+                setServer(false);
+                error(rsStatus, "Cannot connect to the server");
+                return;
+            }
+            setServer(true);
+            if (r.code() != 0) {
+                error(rsStatus, Code.message(r.code()));
+                return;
+            }
+            rsNew.clear();
+            rsConfirm.clear();
+            userField.setText(user);
+            passField.clear();
+            showRecoveryCode(r.extra().isEmpty() ? "" : r.extra().get(0), false);
+        }));
+    }
+
+    /** Recovery code dialog after REGI|0|<code> (registered = true) or RSPW|0|<code>. */
+    private void showRecoveryCode(String code, boolean registered) {
+        Label codeBox = new Label(code);
+        codeBox.getStyleClass().add("code");
+        codeBox.setMaxWidth(Double.MAX_VALUE);
+        Label copied = new Label("");
+        copied.getStyleClass().addAll("msg", "ok");
+
+        Button copy = new Button("Copy code");
+        copy.getStyleClass().add("btn");
+        Button done = primary(registered ? "I have saved it" : "Back to log in");
+        done.setOnAction(e -> {
+            showReset(false);
+            ok(statusLabel, registered ? "Account created. Log in with your new password."
+                    : "Password changed. Log in with the new password.");
+            passField.requestFocus();
+        });
+
+        Node[] body = registered
+                ? new Node[]{Dialogs.text("Save this recovery code somewhere safe. It is the only way to reset your password, and it is shown only once."), codeBox, copied}
+                : new Node[]{Dialogs.text("Log in with your new password. The old recovery code no longer works; here is your new code:"), codeBox, copied};
+        Dialogs.show(root, registered ? "Account created" : "Password changed", false, body, copy, done);
+
+        // Copy must not close the dialog: replace the closing handler that Dialogs installed
+        copy.setOnAction(e -> {
+            ClipboardContent cc = new ClipboardContent();
+            cc.putString(code);
+            Clipboard.getSystemClipboard().setContent(cc);
+            copied.setText("Copied to clipboard");
+        });
+    }
+
+    // ---------- helpers ----------
+
+    private static Button primary(String text) {
+        Button b = new Button(text);
+        b.getStyleClass().addAll("btn", "primary");
+        return b;
+    }
+
+    private static void error(Label l, String s) {
+        l.getStyleClass().setAll("label", "msg", "err");
+        l.setText(s);
+    }
+
+    private static void ok(Label l, String s) {
+        l.getStyleClass().setAll("label", "msg", "ok");
+        l.setText(s);
     }
 }

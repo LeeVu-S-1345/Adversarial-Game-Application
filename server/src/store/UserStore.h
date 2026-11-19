@@ -19,9 +19,15 @@ class UserStore {
 public:
     virtual ~UserStore() = default;
 
-    // False nếu tên đã tồn tại (hoặc lỗi lưu trữ).
-    virtual bool create(const std::string& name, const std::string& password) = 0;
+    // False nếu tên đã tồn tại (hoặc lỗi lưu trữ). recoveryCode: mã để đặt lại mật khẩu (use case 16).
+    virtual bool create(const std::string& name, const std::string& password,
+                        const std::string& recoveryCode) = 0;
     virtual bool checkPassword(const std::string& name, const std::string& password) const = 0;
+
+    // Use case 16. Nếu `name` tồn tại và mã đúng: đổi mật khẩu, thay mã bằng newCode, trả true.
+    // Tài khoản không có mã (tạo trước use case 16) không bao giờ khớp.
+    virtual bool resetPassword(const std::string& name, const std::string& code,
+                               const std::string& newPassword, const std::string& newCode) = 0;
 
     // Điểm của `name` cho `game`; 1000 nếu không có user hoặc game lạ.
     virtual int elo(const std::string& name, const std::string& game) const = 0;

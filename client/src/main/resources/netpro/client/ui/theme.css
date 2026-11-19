@@ -1,0 +1,183 @@
+/* Theme for every screen (docs/ui-spec.md, section 1.2): notebook paper and felt table.
+   Fonts are loaded by netpro.client.ui.Theme before the first scene is shown. */
+
+.root {
+    -c-ground: #efeee9;
+    -c-surface: #ffffff;
+    -c-line: #dedcd5;
+    -c-line-soft: #eceae4;
+    -c-ink: #1c1d1a;
+    -c-dim: #6b6c66;
+    -c-faint: #8d8e87;
+    -c-felt: #2f6b4f;
+    -c-felt-deep: #24543d;
+    -c-on-felt: #b9d3c4;
+    -c-red: #a3261d;
+    -c-amber: #8a5a00;
+    -fx-font-family: "IBM Plex Sans";
+    -fx-font-size: 14px;
+    -fx-background-color: -c-ground;
+}
+
+.label { -fx-text-fill: -c-ink; }
+
+/* ---------- text ---------- */
+.semi { -fx-font-family: "IBM Plex Sans SmBld"; }
+.bold { -fx-font-weight: bold; }
+.cond { -fx-font-family: "IBM Plex Sans Condensed"; -fx-font-weight: bold; }
+.mono { -fx-font-family: "IBM Plex Mono Medium"; }
+.dim { -fx-text-fill: -c-dim; }
+.faint { -fx-text-fill: -c-faint; }
+.small { -fx-font-size: 12px; }
+.h1 { -fx-font-size: 28px; -fx-font-weight: bold; }
+.sec { -fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: -c-dim; }
+.sec-count { -fx-font-size: 12px; -fx-text-fill: -c-faint; }
+.lbl { -fx-font-family: "IBM Plex Sans SmBld"; -fx-font-size: 13px; }
+.msg { -fx-font-size: 13px; -fx-text-fill: -c-dim; }
+.msg.err { -fx-text-fill: -c-red; }
+.msg.ok { -fx-text-fill: -c-felt; }
+.danger-text { -fx-text-fill: -c-red; }
+
+/* ---------- buttons: one primary per area ---------- */
+.btn {
+    -fx-background-color: -c-surface;
+    -fx-background-insets: 0;
+    -fx-background-radius: 7;
+    -fx-border-color: #cfccc3;
+    -fx-border-radius: 7;
+    -fx-border-width: 1;
+    -fx-padding: 0 16 0 16;
+    -fx-min-height: 36;
+    -fx-pref-height: 36;
+    -fx-font-family: "IBM Plex Sans SmBld";
+    -fx-font-size: 14px;
+    -fx-text-fill: -c-ink;
+    -fx-cursor: hand;
+}
+.btn:hover { -fx-background-color: #f5f4f0; -fx-border-color: #bdb9ae; }
+.btn:pressed { -fx-translate-y: 1; }
+.btn:focused { -fx-border-color: -c-felt; }
+.btn:disabled { -fx-opacity: 1; -fx-background-color: #f3f2ee; -fx-border-color: #e3e1da; -fx-text-fill: #a9a79f; }
+.btn.primary { -fx-background-color: -c-felt; -fx-border-color: #265a42; -fx-text-fill: white; }
+.btn.primary:hover { -fx-background-color: #295f46; }
+.btn.primary:disabled { -fx-background-color: #9db8aa; -fx-border-color: #9db8aa; -fx-text-fill: #f4f8f5; }
+.btn.danger { -fx-text-fill: -c-red; -fx-border-color: #e2c3be; }
+.btn.danger:hover { -fx-background-color: #fbf1ef; }
+.btn.danger:disabled { -fx-text-fill: #cdb0ab; -fx-border-color: #eee1de; -fx-background-color: #faf6f5; }
+.btn.ghost { -fx-background-color: transparent; -fx-border-color: transparent; }
+.btn.ghost:hover { -fx-background-color: #ebe9e3; }
+.btn.ghost:disabled { -fx-background-color: transparent; -fx-border-color: transparent; }
+.btn.sm { -fx-min-height: 28; -fx-pref-height: 28; -fx-padding: 0 10 0 10; -fx-font-size: 13px; -fx-background-radius: 6; -fx-border-radius: 6; }
+.btn.big { -fx-min-height: 46; -fx-pref-height: 46; -fx-font-size: 15px; }
+.btn.ivory { -fx-background-color: #fbf8ef; -fx-border-color: #fbf8ef; -fx-text-fill: #1f4a35; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 2, 0, 0, 2); }
+.btn.ivory:hover { -fx-background-color: white; }
+.btn.ivory:disabled { -fx-background-color: rgba(255,255,255,0.22); -fx-border-color: transparent; -fx-text-fill: rgba(255,255,255,0.6); -fx-effect: null; }
+.btn.onfelt { -fx-background-color: transparent; -fx-border-color: rgba(255,255,255,0.45); -fx-text-fill: white; }
+.btn.onfelt:hover { -fx-background-color: rgba(255,255,255,0.08); }
+.btn.onfelt:disabled { -fx-background-color: transparent; -fx-border-color: rgba(255,255,255,0.2); -fx-text-fill: rgba(255,255,255,0.4); }
+.btn.feltdanger { -fx-background-color: transparent; -fx-border-color: rgba(255,190,180,0.55); -fx-text-fill: #ffd1cb; }
+.btn.feltdanger:hover { -fx-background-color: rgba(255,255,255,0.08); }
+
+.link {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+    -fx-font-family: "IBM Plex Sans SmBld";
+    -fx-font-size: 14px;
+    -fx-text-fill: -c-felt;
+    -fx-cursor: hand;
+}
+.link:hover { -fx-underline: true; }
+
+.icon-btn { -fx-background-color: transparent; -fx-background-radius: 5; -fx-padding: 6; -fx-cursor: hand; }
+.icon-btn:hover { -fx-background-color: #f1f0ec; }
+.icon-btn .icon { -fx-fill: -c-dim; }
+
+/* ---------- inputs ---------- */
+.inp {
+    -fx-background-color: white;
+    -fx-background-insets: 0;
+    -fx-background-radius: 7;
+    -fx-border-color: #cfccc3;
+    -fx-border-radius: 7;
+    -fx-pref-height: 42;
+    -fx-padding: 0 12 0 12;
+    -fx-font-size: 15px;
+    -fx-text-fill: -c-ink;
+    -fx-prompt-text-fill: #a9a79f;
+    -fx-highlight-fill: #cfe3d7;
+    -fx-highlight-text-fill: -c-ink;
+}
+.inp:focused { -fx-border-color: -c-felt; -fx-effect: dropshadow(gaussian, rgba(47,107,79,0.28), 6, 0.4, 0, 0); }
+.inp.pw { -fx-padding: 0 44 0 12; }
+.inp.mono { -fx-font-family: "IBM Plex Mono Medium"; }
+.inp.server { -fx-pref-height: 30; -fx-pref-width: 180; -fx-font-size: 13px; -fx-font-family: "IBM Plex Mono Medium"; -fx-background-color: transparent; }
+
+.check-box { -fx-text-fill: -c-ink; -fx-cursor: hand; }
+.check-box .box { -fx-background-color: white; -fx-background-insets: 0; -fx-border-color: #cfccc3; -fx-border-radius: 3; -fx-background-radius: 3; }
+.check-box:selected .box { -fx-background-color: -c-felt; -fx-border-color: -c-felt; }
+.check-box:selected .mark { -fx-background-color: white; }
+
+/* ---------- surfaces ---------- */
+.card { -fx-background-color: -c-surface; -fx-background-radius: 10; -fx-border-color: -c-line; -fx-border-radius: 10; }
+.topbar { -fx-background-color: -c-surface; -fx-border-color: transparent transparent -c-line transparent; -fx-padding: 0 20 0 20; -fx-min-height: 56; -fx-pref-height: 56; -fx-spacing: 12; -fx-alignment: center-left; }
+.statusbar { -fx-background-color: -c-surface; -fx-border-color: -c-line transparent transparent transparent; -fx-padding: 0 20 0 20; -fx-min-height: 38; -fx-pref-height: 38; -fx-spacing: 12; -fx-alignment: center-left; }
+.vsep { -fx-background-color: -c-line; -fx-min-width: 1; -fx-pref-width: 1; -fx-max-width: 1; }
+.hsep-felt { -fx-background-color: rgba(255,255,255,0.16); -fx-min-height: 1; -fx-pref-height: 1; -fx-max-height: 1; }
+.faded { -fx-opacity: 0.45; }
+
+.scroll-pane, .scroll-pane > .viewport { -fx-background-color: transparent; -fx-background-insets: 0; -fx-padding: 0; }
+.scroll-bar:vertical { -fx-background-color: transparent; -fx-pref-width: 8; }
+.scroll-bar:vertical .thumb { -fx-background-color: #d3d0c7; -fx-background-radius: 4; }
+.scroll-bar .increment-button, .scroll-bar .decrement-button { -fx-pref-height: 0; -fx-padding: 0; }
+.scroll-bar .increment-arrow, .scroll-bar .decrement-arrow { -fx-shape: " "; -fx-padding: 0; }
+
+/* ---------- login ---------- */
+.felt-title { -fx-font-family: "IBM Plex Sans Condensed"; -fx-font-weight: bold; -fx-font-size: 40px; -fx-text-fill: white; }
+
+/* ---------- lobby ---------- */
+/* the felt background and its rounded clip are set in code (Theme.felt): no -fx-background-* here */
+.table { -fx-padding: 16; -fx-spacing: 12; }
+.table .sec { -fx-text-fill: -c-on-felt; }
+.on-felt { -fx-text-fill: white; }
+.on-felt-dim { -fx-text-fill: -c-on-felt; }
+.gtile { -fx-background-color: white; -fx-background-radius: 10; -fx-border-color: transparent; -fx-border-width: 3; -fx-border-radius: 10; -fx-padding: 9; -fx-spacing: 14; -fx-alignment: center-left; -fx-cursor: hand; }
+.gtile.on { -fx-border-color: #e9c96a; }
+.gtile:disabled, .gtile:disabled .label { -fx-opacity: 1; }
+.gtile:focused { -fx-border-color: #e9c96a; }
+.gtile-name { -fx-font-size: 16px; -fx-font-weight: bold; }
+.gtile-elo { -fx-font-size: 18px; -fx-font-weight: bold; }
+.gtile-rank { -fx-font-size: 11px; -fx-text-fill: -c-dim; }
+.inv { -fx-background-color: white; -fx-background-radius: 9; -fx-border-color: -c-line; -fx-border-radius: 9; -fx-padding: 10 12 10 12; -fx-spacing: 10; -fx-alignment: center-left; }
+.prow { -fx-border-color: transparent transparent -c-line-soft transparent; -fx-padding: 9 4 9 4; -fx-spacing: 10; -fx-alignment: center-left; }
+.st { -fx-font-size: 12px; -fx-text-fill: -c-dim; }
+.st.free { -fx-text-fill: -c-felt; }
+.tag { -fx-font-family: "IBM Plex Sans SmBld"; -fx-font-size: 12px; }
+.tag.wait { -fx-text-fill: -c-amber; }
+.tag.declined { -fx-text-fill: -c-red; }
+.rrow { -fx-padding: 8 10 8 10; -fx-background-radius: 7; -fx-spacing: 10; -fx-alignment: center-left; }
+.rrow.me { -fx-background-color: #eef4f0; }
+.rrow.me .label { -fx-font-weight: bold; }
+.rk { -fx-text-fill: -c-faint; -fx-font-family: "IBM Plex Sans SmBld"; }
+
+/* ---------- game ---------- */
+.paper { -fx-background-color: #fdfdfa; -fx-background-radius: 3; -fx-padding: 10 12 12 10; -fx-effect: dropshadow(gaussian, rgba(40,38,30,0.2), 24, 0, 0, 8); }
+.frame { -fx-background-color: #5b3e29; -fx-background-radius: 10; -fx-padding: 12; -fx-effect: dropshadow(gaussian, rgba(40,30,20,0.38), 24, 0, 0, 10); }
+.pcard { -fx-background-color: white; -fx-background-radius: 10; -fx-border-color: -c-line; -fx-border-radius: 10; -fx-border-width: 1; -fx-padding: 12; -fx-spacing: 12; -fx-alignment: center-left; }
+.pcard.turn { -fx-border-color: -c-felt; -fx-border-width: 2; -fx-padding: 11; }
+.pname { -fx-font-weight: bold; }
+.pcount { -fx-font-size: 18px; -fx-font-weight: bold; }
+.turnpill { -fx-background-color: -c-felt; -fx-background-radius: 9; -fx-padding: 1 8 1 8; -fx-text-fill: white; -fx-font-size: 11px; -fx-font-weight: bold; }
+.hist { -fx-padding: 5 8 5 8; -fx-background-radius: 6; -fx-spacing: 10; -fx-alignment: center-left; }
+.hist.odd { -fx-background-color: #f6f5f1; }
+.hist-no { -fx-font-family: "IBM Plex Mono Medium"; -fx-font-size: 12px; -fx-text-fill: -c-faint; -fx-min-width: 24; }
+.result { -fx-background-color: white; -fx-background-radius: 10; -fx-border-radius: 10; -fx-border-width: 2; -fx-padding: 18 16 16 16; -fx-spacing: 8; -fx-alignment: center; }
+.result-title { -fx-font-family: "IBM Plex Sans Condensed"; -fx-font-weight: bold; -fx-font-size: 32px; }
+.toast { -fx-background-color: #1c1d1a; -fx-background-radius: 8; -fx-padding: 11 18 11 18; -fx-text-fill: white; -fx-font-family: "IBM Plex Sans SmBld"; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 20, 0, 0, 8); }
+
+/* ---------- dialogs ---------- */
+.shade { -fx-background-color: rgba(24,26,22,0.42); }
+.modal { -fx-background-color: white; -fx-background-radius: 12; -fx-padding: 24; -fx-spacing: 12; -fx-effect: dropshadow(gaussian, rgba(24,26,22,0.3), 48, 0, 0, 16); }
+.modal-title { -fx-font-size: 20px; -fx-font-weight: bold; }
+.modal-text { -fx-text-fill: #3d3e3a; -fx-line-spacing: 3; }
+.code { -fx-font-family: "IBM Plex Mono Medium"; -fx-font-size: 30px; -fx-background-color: #f5f4f0; -fx-background-radius: 8; -fx-border-color: #bdb9ae; -fx-border-style: segments(6, 4); -fx-border-radius: 8; -fx-padding: 12; -fx-alignment: center; }

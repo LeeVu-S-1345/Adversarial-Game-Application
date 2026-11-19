@@ -3,93 +3,94 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.shape.*?>
-
 <?import java.net.URL?>
+
+<!-- Login, Register and Reset password (docs/ui-spec.md, section 3). The left panel is netpro.client.ui.LoginArt. -->
 <StackPane xmlns="http://javafx.com/javafx"
            xmlns:fx="http://javafx.com/fxml"
+           fx:id="root"
            fx:controller="netpro.client.ui.controller.LoginController"
-           styleClass="root-bg" prefWidth="1100" prefHeight="620">
+           prefWidth="1100" prefHeight="620">
     <stylesheets>
-        <URL value="@login.css"/>
+        <URL value="@theme.css"/>
     </stylesheets>
 
-    <HBox alignment="CENTER_RIGHT" spacing="40" maxHeight="Infinity" maxWidth="Infinity">
-        <padding><Insets top="40" right="60" bottom="40" left="60"/></padding>
+    <HBox>
+        <StackPane fx:id="artHolder"/>
+        <AnchorPane HBox.hgrow="ALWAYS">
 
-        <VBox styleClass="card" prefWidth="420" maxWidth="420" minWidth="420"
-              spacing="14" alignment="TOP_CENTER">
-            <StackPane styleClass="avatar" minWidth="72" minHeight="72"
-                       maxWidth="72" maxHeight="72">
-                <SVGPath styleClass="icon-white"
-                         content="M21 6H3c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-10 7H8v3H6v-3H3v-2h3V8h2v3h3v2zm4.5 2c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm4-3c-.83 0-1.5-.67-1.5-1.5S18.67 9 19.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"
-                         scaleX="1.5" scaleY="1.5"/>
-            </StackPane>
-            <Label text="Login" styleClass="card-title"/>
-            <Label text="Welcome back!" styleClass="card-subtitle"/>
+            <!-- Log in / Create an account -->
+            <VBox fx:id="loginForm" spacing="16" prefWidth="380" AnchorPane.leftAnchor="100" AnchorPane.topAnchor="64">
+                <Label text="Log in" styleClass="h1"/>
+                <VBox spacing="6">
+                    <Label text="Username" styleClass="lbl"/>
+                    <TextField fx:id="userField" styleClass="inp" onAction="#onLogin"/>
+                </VBox>
+                <VBox spacing="6">
+                    <Label text="Password" styleClass="lbl"/>
+                    <StackPane alignment="CENTER_RIGHT">
+                        <PasswordField fx:id="passField" styleClass="inp, pw" onAction="#onLogin"/>
+                        <TextField fx:id="passText" styleClass="inp, pw" onAction="#onLogin" visible="false" managed="false"/>
+                        <Button fx:id="eyeButton" styleClass="icon-btn" onAction="#onToggleEye" focusTraversable="false">
+                            <StackPane.margin><Insets right="5"/></StackPane.margin>
+                            <graphic>
+                                <SVGPath styleClass="icon" content="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" scaleX="0.8" scaleY="0.8"/>
+                            </graphic>
+                        </Button>
+                    </StackPane>
+                </VBox>
+                <HBox alignment="CENTER_LEFT">
+                    <CheckBox fx:id="rememberBox" text="Remember username"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Button text="Forgot password?" styleClass="link" onAction="#onForgot"/>
+                </HBox>
+                <Button fx:id="loginButton" text="Log in" styleClass="btn, primary, big" maxWidth="Infinity" onAction="#onLogin"/>
+                <Label fx:id="statusLabel" styleClass="msg" wrapText="true" minHeight="18"/>
+                <Separator/>
+                <HBox alignment="CENTER_LEFT">
+                    <Label text="No account yet?" styleClass="dim"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Button fx:id="registerButton" text="Create an account" styleClass="btn" onAction="#onRegister"/>
+                </HBox>
+            </VBox>
 
-            <!-- Tên đăng nhập -->
-            <HBox fx:id="userBox" styleClass="field-box">
-                <SVGPath styleClass="icon"
-                         content="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                <TextField fx:id="userField" promptText="Username" HBox.hgrow="ALWAYS"/>
+            <!-- Reset password (use case 16) -->
+            <VBox fx:id="resetForm" spacing="12" prefWidth="380" AnchorPane.leftAnchor="100" AnchorPane.topAnchor="36"
+                  visible="false" managed="false">
+                <VBox spacing="4">
+                    <Label text="Reset password" styleClass="h1"/>
+                    <Label text="Enter the recovery code you got when you created the account." styleClass="dim" wrapText="true"/>
+                </VBox>
+                <VBox spacing="6">
+                    <Label text="Username" styleClass="lbl"/>
+                    <TextField fx:id="rsUser" styleClass="inp"/>
+                </VBox>
+                <VBox spacing="6">
+                    <Label text="Recovery code" styleClass="lbl"/>
+                    <TextField fx:id="rsCode" styleClass="inp, mono" promptText="8 letters or digits"/>
+                </VBox>
+                <HBox spacing="10">
+                    <VBox spacing="6" HBox.hgrow="ALWAYS">
+                        <Label text="New password" styleClass="lbl"/>
+                        <PasswordField fx:id="rsNew" styleClass="inp"/>
+                    </VBox>
+                    <VBox spacing="6" HBox.hgrow="ALWAYS">
+                        <Label text="Confirm" styleClass="lbl"/>
+                        <PasswordField fx:id="rsConfirm" styleClass="inp" onAction="#onReset"/>
+                    </VBox>
+                </HBox>
+                <Button fx:id="resetButton" text="Reset password" styleClass="btn, primary, big" maxWidth="Infinity" onAction="#onReset"/>
+                <Label fx:id="rsStatus" styleClass="msg" wrapText="true" minHeight="18"/>
+                <Separator/>
+                <Button text="← Back to log in" styleClass="link" onAction="#onBackToLogin"/>
+            </VBox>
+
+            <!-- Server status and address -->
+            <HBox spacing="10" alignment="CENTER_LEFT" AnchorPane.leftAnchor="60" AnchorPane.bottomAnchor="18">
+                <Circle fx:id="serverDot" radius="4"/>
+                <Label fx:id="serverLabel" styleClass="dim" style="-fx-font-size: 13px;"/>
+                <TextField fx:id="serverField" styleClass="inp, server" promptText="host:port" onAction="#onServerChanged"/>
             </HBox>
-
-            <!-- Mật khẩu (PasswordField và TextField chồng lên nhau để bật/tắt hiện mật khẩu) -->
-            <HBox fx:id="passBox" styleClass="field-box">
-                <SVGPath styleClass="icon"
-                         content="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
-                <StackPane HBox.hgrow="ALWAYS">
-                    <PasswordField fx:id="passField" promptText="Password"/>
-                    <TextField fx:id="passText" promptText="Password" visible="false" managed="false"/>
-                </StackPane>
-                <Button fx:id="eyeButton" styleClass="icon-button" onAction="#onToggleEye">
-                    <graphic>
-                        <SVGPath styleClass="icon"
-                                 content="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
-                    </graphic>
-                </Button>
-            </HBox>
-
-            <HBox alignment="CENTER_LEFT">
-<!--                <CheckBox fx:id="rememberBox" text="Ghi nhớ đăng nhập"/>-->
-                <Region HBox.hgrow="ALWAYS"/>
-                <Hyperlink text="Forgot password?" onAction="#onForgot"/>
-            </HBox>
-
-            <Button fx:id="loginButton" text="Login" styleClass="primary-button"
-                    maxWidth="Infinity" onAction="#onLogin" defaultButton="true">
-                <graphic>
-                    <SVGPath styleClass="icon-white"
-                             content="M11 7L9.6 8.4l2.6 2.6H2v2h10.2l-2.6 2.6L11 17l5-5-5-5zm9 12h-8v2h8c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-8v2h8v14z"/>
-                </graphic>
-            </Button>
-
-            <HBox alignment="CENTER" spacing="10">
-                <Separator HBox.hgrow="ALWAYS"/>
-                <Label text="Hoặc" styleClass="card-subtitle"/>
-                <Separator HBox.hgrow="ALWAYS"/>
-            </HBox>
-
-            <Button fx:id="registerButton" text="Register an account" styleClass="secondary-button"
-                    maxWidth="Infinity" onAction="#onRegister">
-                <graphic>
-                    <SVGPath styleClass="icon-white"
-                             content="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                </graphic>
-            </Button>
-
-            <Label fx:id="statusLabel" styleClass="status-label" wrapText="true" textAlignment="CENTER"/>
-        </VBox>
-    </HBox>
-
-    <!-- Trạng thái server, góc dưới trái -->
-    <HBox StackPane.alignment="BOTTOM_LEFT" alignment="CENTER_LEFT" spacing="8"
-          maxWidth="-Infinity" maxHeight="-Infinity" pickOnBounds="false">
-        <StackPane.margin><Insets left="24" bottom="18"/></StackPane.margin>
-        <Circle fx:id="serverDot" radius="6"/>
-        <Label fx:id="serverLabel" styleClass="server-label"/>
-        <!-- Địa chỉ server "host:port"; Enter để kết nối lại -->
-        <TextField fx:id="serverField" styleClass="server-field" promptText="host:port"
-                   prefWidth="190" onAction="#onServerChanged"/>
+        </AnchorPane>
     </HBox>
 </StackPane>

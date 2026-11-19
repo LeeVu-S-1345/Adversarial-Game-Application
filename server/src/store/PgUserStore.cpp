@@ -72,9 +72,11 @@ bool PgUserStore::load() {
         "  name        TEXT PRIMARY KEY,"
         "  password    TEXT NOT NULL,"
         "  elo_caro    INTEGER NOT NULL DEFAULT 1000,"
-        "  elo_reversi INTEGER NOT NULL DEFAULT 1000)",
+        "  elo_reversi INTEGER NOT NULL DEFAULT 1000,"
+        "  recovery_code TEXT NOT NULL DEFAULT '')",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS elo_caro INTEGER NOT NULL DEFAULT 1000",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS elo_reversi INTEGER NOT NULL DEFAULT 1000",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS recovery_code TEXT NOT NULL DEFAULT ''",
     };
     for (const char* sql : kSetup) {
         Result r(PQexec(conn_, sql));
@@ -93,12 +95,13 @@ bool PgUserStore::ensureConnected() const {
     return PQstatus(conn_) == CONNECTION_OK;
 }
 
-bool PgUserStore::create(const std::string& name, const std::string& password) {
+bool PgUserStore::create(const std::string& name, const std::string& password,
+                         const std::string& recoveryCode) {
     if (!ensureConnected()) return false;
     Result r = query(conn_,
-                     "INSERT INTO users(name, password) VALUES($1, $2) "
+                     "INSERT INTO users(name, password, recovery_code) VALUES($1, $2, $3) "
                      "ON CONFLICT (name) DO NOTHING",
-                     {name, password});
+                     {name, password, recoveryCode});
     if (!r.ok()) {
         logError("create failed", conn_);
         return false;
@@ -112,6 +115,21 @@ bool PgUserStore::checkPassword(const std::string& name, const std::string& pass
     Result r = query(conn_, "SELECT 1 FROM users WHERE name = $1 AND password = $2",
                      {name, password});
     return r.ok() && r.rows() == 1;
+}
+
+bool PgUserStore::resetPassword(const std::string& name, const std::string& code,
+                                const std::string& newPassword, const std::string& newCode) {
+    if (!ensureConnected()) return false;
+    // Một câu UPDATE: kiểm tra mã và đổi mật khẩu cùng lúc. Mã rỗng (tài khoản cũ) không bao giờ khớp.
+    Result r = query(conn_,
+                     "UPDATE users SET password = $3, recovery_code = $4 "
+                     "WHERE name = $1 AND recovery_code = $2 AND recovery_code <> ''",
+                     {name, code, newPassword, newCode});
+    if (!r.ok()) {
+        logError("reset password failed", conn_);
+        return false;
+    }
+    return std::strcmp(PQcmdTuples(r.r), "1") == 0;
 }
 
 int PgUserStore::elo(const std::string& name, const std::string& game) const {

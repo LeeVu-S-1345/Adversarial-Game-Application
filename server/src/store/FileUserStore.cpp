@@ -28,7 +28,7 @@ bool FileUserStore::load() {
         std::stringstream ss(line);
         std::string part;
         while (std::getline(ss, part, '|')) parts.push_back(part);
-        if (parts.size() != 4) {
+        if (parts.size() != 4 && parts.size() != 5) {
             std::cerr << "FileUserStore: skip malformed line in " << path_ << std::endl;
             continue;
         }
@@ -36,6 +36,7 @@ bool FileUserStore::load() {
         u.password = parts[1];
         u.caro = std::atoi(parts[2].c_str());
         u.reversi = std::atoi(parts[3].c_str());
+        if (parts.size() == 5) u.recoveryCode = parts[4];
         users_[parts[0]] = std::move(u);
     }
     return !in.bad();
@@ -49,7 +50,8 @@ bool FileUserStore::save() const {
         std::ofstream out(tmp, std::ios::trunc);
         if (!out) return false;
         for (const auto& [name, u] : users_) {
-            out << name << '|' << u.password << '|' << u.caro << '|' << u.reversi << '\n';
+            out << name << '|' << u.password << '|' << u.caro << '|' << u.reversi << '|'
+                << u.recoveryCode << '\n';
         }
         out.flush();
         if (!out) return false;
@@ -57,10 +59,12 @@ bool FileUserStore::save() const {
     return std::rename(tmp.c_str(), path_.c_str()) == 0;
 }
 
-bool FileUserStore::create(const std::string& name, const std::string& password) {
+bool FileUserStore::create(const std::string& name, const std::string& password,
+                           const std::string& recoveryCode) {
     if (users_.count(name)) return false;
     User u;
     u.password = password;
+    u.recoveryCode = recoveryCode;
     users_[name] = std::move(u);
     if (!save()) std::cerr << "FileUserStore: cannot write " << path_ << std::endl;
     return true;
@@ -69,6 +73,17 @@ bool FileUserStore::create(const std::string& name, const std::string& password)
 bool FileUserStore::checkPassword(const std::string& name, const std::string& password) const {
     auto it = users_.find(name);
     return it != users_.end() && it->second.password == password;
+}
+
+bool FileUserStore::resetPassword(const std::string& name, const std::string& code,
+                                  const std::string& newPassword, const std::string& newCode) {
+    auto it = users_.find(name);
+    if (it == users_.end() || it->second.recoveryCode.empty() || it->second.recoveryCode != code)
+        return false;
+    it->second.password = newPassword;
+    it->second.recoveryCode = newCode;
+    if (!save()) std::cerr << "FileUserStore: cannot write " << path_ << std::endl;
+    return true;
 }
 
 int FileUserStore::elo(const std::string& name, const std::string& game) const {

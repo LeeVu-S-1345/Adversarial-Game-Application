@@ -6,4 +6,4 @@ client/out/
 *.iml
 # Server build
 server/build/
-build/
+build/.vscode/

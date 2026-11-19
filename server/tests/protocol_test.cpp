@@ -1,6 +1,7 @@
 // server/tests/protocol_test.cpp
 // Chạy các phiên mẫu của docs/protocol.md thẳng vào Hub, không cần socket.
 // Mỗi dòng mong đợi có dạng "<conn> <message>", theo đúng thứ tự server gửi.
+#include <cstdio>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -20,6 +21,15 @@ using Lines = std::vector<std::string>;
 struct Server {
     store::FileUserStore users{""};  // path rỗng: chỉ giữ trong RAM
     core::Hub hub{users};
+    int codes = 0;  // recovery code cố định cho test: CODE0001, CODE0002, ...
+
+    Server() {
+        hub.setRecoveryCodeGenerator([this] {
+            char buf[16];
+            std::snprintf(buf, sizeof(buf), "CODE%04d", ++codes);
+            return std::string(buf);
+        });
+    }
 
     static Lines fmt(const core::Out& out) {
         Lines v;
@@ -69,9 +79,29 @@ void loginThree(Server& s) {
     s.send(3, "LOGI|linh|qwerty");
 }
 
+// 16. Reset Password (RSPW)
+void testResetPassword() {
+    Server s;
+    s.send(1, "REGI|minh|123456");  // recovery code CODE0001
+    // (every RSPW that passes the format check draws a new code, even when it then fails)
+    expect("RSPW unknown user", s.send(1, "RSPW|nobody|CODE0001|newpass"), {"1 RSPW|17"});
+    expect("RSPW wrong code", s.send(1, "RSPW|minh|CODE9999|newpass"), {"1 RSPW|17"});
+    expect("RSPW lower-case code", s.send(1, "RSPW|minh|code0001|newpass"), {"1 RSPW|11"});
+    expect("RSPW short code", s.send(1, "RSPW|minh|CODE01|newpass"), {"1 RSPW|11"});
+    expect("RSPW bad new password", s.send(1, "RSPW|minh|CODE0001|new pass"), {"1 RSPW|11"});
+    expect("RSPW missing field", s.send(1, "RSPW|minh|CODE0001"), {"1 RSPW|10"});
+    expect("RSPW ok", s.send(1, "RSPW|minh|CODE0001|newpass"), {"1 RSPW|0|CODE0004"});
+    expect("RSPW old code used again", s.send(1, "RSPW|minh|CODE0001|other1"), {"1 RSPW|17"});
+    expect("LOGI old password", s.send(1, "LOGI|minh|123456"), {"1 LOGI|1"});
+    expect("LOGI new password", s.send(1, "LOGI|minh|newpass"), {"1 LOGI|0"});
+    expect("RSPW while logged in", s.send(1, "RSPW|minh|CODE0004|abcdef"), {"1 RSPW|12"});
+    expect("RSPW from another connection", s.send(2, "RSPW|minh|CODE0004|abcdef"), {"2 RSPW|0|CODE0006"});
+    expectInt("logged-in session kept", static_cast<int>(s.send(1, "PLST").size()), 1);
+}
+
 void testAuthentication() {
     Server s;
-    expect("REGI ok", s.send(1, "REGI|minh|123456"), {"1 REGI|0"});
+    expect("REGI ok", s.send(1, "REGI|minh|123456"), {"1 REGI|0|CODE0001"});
     expect("REGI existing", s.send(1, "REGI|minh|abcdef"), {"1 REGI|3"});
     expect("REGI space in username", s.send(1, "REGI|hoang minh|123"), {"1 REGI|11"});
     expect("REGI empty password", s.send(1, "REGI|minh2|"), {"1 REGI|11"});
@@ -296,6 +326,7 @@ void testElo() {
 
 int main() {
     testAuthentication();
+    testResetPassword();
     testLobbyInformation();
     testRoomAndInvitation();
     testInvitationLifecycle();

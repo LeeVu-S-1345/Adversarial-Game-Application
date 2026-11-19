@@ -3,6 +3,7 @@ package netpro.client.app;
 import netpro.client.Config;
 import netpro.client.app.game.GameSession;
 import netpro.client.net.Connection;
+import netpro.client.protocol.Wire;
 
 import java.io.IOException;
 import java.util.*;
@@ -20,6 +21,30 @@ public class GameClient {
     public void setUsername(String u) { this.username = u; }
     public GameSession getGame() { return game; }
     public void setGame(GameSession g) { this.game = g; }
+
+    // Dữ liệu giữ qua các màn hình (chỉ dùng trên FX thread).
+    private final Map<String, List<Wire.RankRow>> rankings = new HashMap<>();
+    private final List<Wire.Invite> invites = new ArrayList<>();   // INVI có thể đến khi còn ở màn Game sau OVER
+    private String selectedGame = Wire.CARO;
+    private String roomLabel = "";
+
+    public void setRanking(String game, List<Wire.RankRow> rows) { rankings.put(game, rows); }
+    public List<Wire.RankRow> getRanking(String game) { return rankings.getOrDefault(game, List.of()); }
+    /** Elo của name ở game; null nếu chưa có bảng xếp hạng. */
+    public Integer ratingOf(String game, String name) {
+        for (Wire.RankRow r : getRanking(game)) if (r.name().equals(name)) return r.rating();
+        return null;
+    }
+    public List<Wire.Invite> getInvites() { return invites; }
+    public String getSelectedGame() { return selectedGame; }
+    public void setSelectedGame(String g) { selectedGame = g; }
+    /** "Room #3" hoặc "Random match": tiêu đề màn Game (STRT không gửi roomId). */
+    public String getRoomLabel() { return roomLabel; }
+    public void setRoomLabel(String l) { roomLabel = l; }
+    /** Thông báo cho màn tiếp theo hiện trên thanh trạng thái (vd khi từ màn Game về sảnh). */
+    private String notice = "";
+    public String takeNotice() { String n = notice; notice = ""; return n; }
+    public void setNotice(String n) { notice = n; }
 
     // 6 push của protocol. Mọi dòng khác là response của request đang chờ.
     private static final Set<String> PUSH = Set.of("INVI", "IDCL", "STRT", "OPPM", "SKIP", "OVER");

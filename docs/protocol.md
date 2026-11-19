@@ -1,6 +1,6 @@
 # Application Protocol — Adversarial Game Application
 
-Version 1.5 — 15/11/2026
+Version 1.6 — 19/11/2026 (1.6: use case 16 Reset Password, message `RSPW`, code 17, `REGI` returns a recovery code)
 
 Tài liệu này là chuẩn chung cho server (C++) và client (JavaFX). Khi code và tài liệu khác nhau thì tài liệu đúng; muốn đổi protocol thì sửa tài liệu trước.
 
@@ -17,10 +17,10 @@ Phần đặc tả viết bằng tiếng Anh theo đúng thuật ngữ của sli
 
 **Contents**
 
-- [Part I — Overview](#part-i--overview): architecture, a typical session, 5 states, 20 messages, 17 status codes
+- [Part I — Overview](#part-i--overview): architecture, a typical session, 5 states, 21 messages, 18 status codes
 - [Part II — General conventions](#part-ii--general-conventions): message format, data types, response and error rules
 - [Part III — Protocol description by use case](#part-iii--protocol-description-by-use-case)
-  - [Scenario 1 — Authentication](#scenario-1--authentication-regi-logi-logu): 1 Register · 2 Log in · 3 Log out
+  - [Scenario 1 — Authentication](#scenario-1--authentication-regi-logi-logu-rspw): 1 Register · 2 Log in · 3 Log out · 16 Reset Password
   - [Scenario 2 — Lobby information queries](#scenario-2--lobby-information-queries-plst-rank): 4 View Online Players · 5 View Player Rankings
   - [Scenario 3 — Match entry](#scenario-3--match-entry-crom-invt-iacc-idec-drom-rand-rcan): 6 Create Room · 7 Invite Player · 8 Join Room / Accept Invitation · 9 Decline Invitation · 10 Leave Room · 11 Match Randomly · 12 Cancel Matching
   - [Scenario 4 — Play game](#scenario-4--play-game-move-rsgn-over): 13 Make a Move · 14 Resign · 15 End of Game
@@ -99,7 +99,7 @@ Three message categories appear here:
 ```mermaid
 stateDiagram-v2
     [*] --> CONNECTED: TCP connect
-    CONNECTED --> CONNECTED: REGI
+    CONNECTED --> CONNECTED: REGI, RSPW
     CONNECTED --> LOBBY: LOGI
     LOBBY --> CONNECTED: LOGU
     LOBBY --> MATCHING: RAND [queue empty]
@@ -117,7 +117,8 @@ State table (successful cases only; every error response leaves the state unchan
 
 | Current state | Trigger | Precondition | Effect (sent to this connection) | Next state |
 |---|---|---|---|---|
-| CONNECTED | receive REGI | username is unique | `REGI\|0` | CONNECTED |
+| CONNECTED | receive REGI | username is unique | `REGI\|0\|<recoveryCode>` | CONNECTED |
+| CONNECTED | receive RSPW | account exists and recovery code matches | `RSPW\|0\|<recoveryCode>` | CONNECTED |
 | CONNECTED | receive LOGI | valid credentials, account not active | `LOGI\|0` | LOBBY |
 | LOBBY | receive LOGU | | `LOGU\|0` | CONNECTED |
 | LOBBY | receive PLST, RANK | | list | LOBBY |
@@ -142,7 +143,7 @@ Requests allowed in each state (blank: the server replies with code 12):
 
 | Request | CONNECTED | LOBBY | MATCHING | IN_ROOM | IN_GAME |
 |---|:-:|:-:|:-:|:-:|:-:|
-| REGI, LOGI | ✓ | | | | |
+| REGI, LOGI, RSPW | ✓ | | | | |
 | LOGU, RANK, RAND, CROM, IACC, IDEC | | ✓ | | | |
 | PLST | | ✓ | | ✓ | |
 | RCAN | | | ✓ | | |
@@ -151,11 +152,11 @@ Requests allowed in each state (blank: the server replies with code 12):
 
 ## 4. List of messages
 
-14 requests (each has a response of the same type) and 6 pushes.
+15 requests (each has a response of the same type) and 6 pushes.
 
 | # | Type | Stands for | Direction | Syntax | Success response | Use case no. |
 |---|---|---|---|---|---|---|
-| 1 | REGI | REGIster | C → S | `REGI\|<user>\|<pass>` | `REGI\|0` | 1 |
+| 1 | REGI | REGIster | C → S | `REGI\|<user>\|<pass>` | `REGI\|0\|<recoveryCode>` | 1 |
 | 2 | LOGI | LOGIn | C → S | `LOGI\|<user>\|<pass>` | `LOGI\|0` | 2 |
 | 3 | LOGU | LOGoUt | C → S | `LOGU` | `LOGU\|0` | 3 |
 | 4 | PLST | Player LiST | C → S | `PLST` | `PLST\|0\|<user>,<status>;...` | 4 |
@@ -175,8 +176,9 @@ Requests allowed in each state (blank: the server replies with code 12):
 | 18 | SKIP | SKIP turn | S → C push | `SKIP\|<side>` | | 13 |
 | 19 | RSGN | ReSiGN | C → S | `RSGN` | `RSGN\|0` | 14 |
 | 20 | OVER | game OVER | S → C push | `OVER\|<result>\|<delta>\|<newRating>` | | 15 |
+| 21 | RSPW | ReSet PassWord | C → S | `RSPW\|<user>\|<recoveryCode>\|<pass>` | `RSPW\|0\|<recoveryCode>` | 16 |
 
-Every error response has the same form: `<TYPE>|<code>`, with code 1–16.
+Every error response has the same form: `<TYPE>|<code>`, with code 1–17.
 
 ## 5. Status and error codes
 
@@ -193,14 +195,15 @@ Every error response has the same form: `<TYPE>|<code>`, with code 1–16.
 | 8 | Target user already has a pending invitation from this room | INVT |
 | 9 | Cannot invite yourself | INVT |
 | 10 | Wrong number of fields (missing or extra), or unknown message type | all |
-| 11 | Username or password has an invalid format (invalid characters, spaces, empty, too long) | REGI, LOGI |
+| 11 | Username or password has an invalid format (invalid characters, spaces, empty, too long); for RSPW also a recovery code that is not 8 upper-case letters or digits | REGI, LOGI, RSPW |
 | 12 | Message not allowed in the current session state | all |
 | 13 | Not your turn | MOVE |
 | 14 | Invalid coordinates (not two integers, or outside the board) | MOVE |
 | 15 | The cell is already occupied | MOVE |
 | 16 | Move violates game rules (Reversi: flanks no pieces) | MOVE |
+| 17 | Wrong username or recovery code (including a non-existent account, or an account created before use case 16) | RSPW |
 
-Groups: 1–3 authentication; 4–9 lobby and room; 10–12 syntax and state; 13–16 in-game.
+Groups: 1–3 and 17 authentication; 4–9 lobby and room; 10–12 syntax and state; 13–16 in-game.
 
 ---
 
@@ -241,7 +244,8 @@ Rules:
 | `<user>` | 1–32 characters from `A–Z`, `a–z`, `0–9`, `_` | `minh`, `vu_le01` |
 | `<pass>` | 1–64 printable ASCII characters without spaces (0x21–0x7E). Cannot contain `\|`. | `123456` |
 | `<game>` | `caro` or `reversi`, lowercase | `caro` |
-| `<code>` | Integer 0–16 | `0`, `12` |
+| `<recoveryCode>` | Exactly 8 characters from `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (no `I`, `O`, `0`, `1`), chosen at random by the server. One code per account; it changes after every use. | `K7Q2M9XP` |
+| `<code>` | Integer 0–17 | `0`, `12` |
 | `<status>` | `FREE` or `BUSY` | `FREE` |
 | `<roomId>` | Positive integer assigned by the server, increasing from 1, never reused during one server run | `7` |
 | `<side>` | `1` or `2`. Side 1 moves first. Caro: 1 is X, 2 is O. Reversi: 1 is Black, 2 is White. | `1` |
@@ -265,7 +269,7 @@ Rules:
 **Order of checks, common to all requests.** Only the first failing check is reported:
 
 1. Log the received message.
-2. Message type is not one of the 14 requests: reply `<received type>|10`.
+2. Message type is not one of the 15 requests: reply `<received type>|10`.
 3. Current state does not allow this request: code 12.
 4. Wrong number of fields: code 10.
 5. Request-specific checks, in the order given in the use case.
@@ -278,7 +282,7 @@ Rules:
 
 # Part III — Protocol description by use case
 
-Các **Message Processing Table** dưới đây chép nguyên văn từ Google Doc của nhóm: kịch bản 1 và 2 từ tab của Minh, kịch bản 3 và 4 từ tab của Vũ Lê. Cột, thứ tự use case (1–15) và câu chữ giữ nguyên, trừ 9 câu được sửa theo các quyết định R1, R2, R4 và 20 câu về ghi log được thêm theo R3, tất cả ở [Appendix A, phần B](#b-resolved-points); phần đó ghi rõ từng câu trước và sau khi sửa để nhóm cập nhật lại Google Doc. Ngoài ra có ba thay đổi về trình bày, không đổi nghĩa:
+Các **Message Processing Table** dưới đây chép nguyên văn từ Google Doc của nhóm: kịch bản 1 và 2 từ tab của Minh, kịch bản 3 và 4 từ tab của Vũ Lê. Cột, thứ tự use case (1–15) và câu chữ giữ nguyên (use case 16 là dòng mới, theo R6), trừ 9 câu được sửa theo các quyết định R1, R2, R4 và 20 câu về ghi log được thêm theo R3, tất cả ở [Appendix A, phần B](#b-resolved-points); phần đó ghi rõ từng câu trước và sau khi sửa để nhóm cập nhật lại Google Doc. Ngoài ra có ba thay đổi về trình bày, không đổi nghĩa:
 
 - Message và placeholder được đặt trong định dạng code để Markdown hiển thị đúng dấu `|` và `<...>`.
 - Bỏ một dấu `]` thừa do gõ nhầm trong dòng `MOVE|0|<k>|...` của use case 13.
@@ -286,14 +290,16 @@ Các **Message Processing Table** dưới đây chép nguyên văn từ Google D
 
 Ghi chú khi đọc: "creator" trong bảng của kịch bản 3 chính là "host" trên slide (chủ phòng). Những điểm tài liệu này làm rõ thêm **không nằm trong bảng**; chúng ở [Appendix A](#appendix-a-clarifications-and-resolved-points), và cuối mỗi kịch bản có dòng trỏ tới các mục liên quan.
 
-## Scenario 1 — Authentication (REGI, LOGI, LOGU)
+## Scenario 1 — Authentication (REGI, LOGI, LOGU, RSPW)
 
 **Messages**
 
 ```
-C → S   REGI|<username>|<password>        S → C   REGI|<code>
+C → S   REGI|<username>|<password>        S → C   REGI|0|<recoveryCode>   or   REGI|<code>
 C → S   LOGI|<username>|<password>        S → C   LOGI|<code>
 C → S   LOGU                              S → C   LOGU|<code>
+C → S   RSPW|<username>|<recoveryCode>|<newPassword>
+                                          S → C   RSPW|0|<recoveryCode>   or   RSPW|<code>
 ```
 
 **Message flow**
@@ -301,7 +307,7 @@ C → S   LOGU                              S → C   LOGU|<code>
 ```
  Client                                        Server
    │── REGI|<username>|<password> ──────────────▶│
-   │◀────────────────────────────── REGI|0 ──────│   [Username available]
+   │◀─────────────────── REGI|0|<recoveryCode> ──│   [Username available]
    │◀────────────────────────────── REGI|3 ──────│   [Username already exists]
 
    │── LOGI|<username>|<password> ──────────────▶│
@@ -312,20 +318,25 @@ C → S   LOGU                              S → C   LOGU|<code>
    │── LOGU ────────────────────────────────────▶│
    │◀────────────────────────────── LOGU|0 ──────│   [Client is in LOBBY]
    │◀────────────────────────────── LOGU|12 ─────│   [Not in LOBBY (in room, game)]
+
+   │── RSPW|<username>|<recoveryCode>|<newPassword> ▶│
+   │◀─────────────────── RSPW|0|<recoveryCode> ──│   [Code matches: password changed, new code]
+   │◀────────────────────────────── RSPW|17 ─────│   [Wrong username or recovery code]
 ```
 
 **Message Processing Table — Scenario 1**
 
 | Use Case | Client Side Processing | Server Side Processing |
 |---|---|---|
-| 1. Register (REGI) | - Precondition: State is CONNECTED.<br>- Validate input locally, then send:<br>`REGI\|<username>\|<password>\r\n`<br>- Wait for response:<br>&nbsp;&nbsp;+ If `REGI\|0`: Display registration success, prompt user to log in (stay in CONNECTED).<br>&nbsp;&nbsp;+ If `REGI\|3`, 10, 11, 12: Display corresponding error message.<br>- Log received message. | - Log received message.<br>- Verify connection state is CONNECTED (if not, reply `REGI\|12`).<br>- Check field count and characters (if invalid, reply `REGI\|10` or `REGI\|11`).<br>- Check database if `<username>` exists:<br>&nbsp;&nbsp;+ If exists: Reply `REGI\|3\r\n`.<br>&nbsp;&nbsp;+ If unique: Create account with initial Elo = 1000 for caro and reversi, save to storage, and reply `REGI\|0\r\n`.<br>- Log every message sent (response and pushes). |
+| 1. Register (REGI) | - Precondition: State is CONNECTED.<br>- Validate input locally, then send:<br>`REGI\|<username>\|<password>\r\n`<br>- Wait for response:<br>&nbsp;&nbsp;+ If `REGI\|0\|<recoveryCode>`: Display registration success and show the recovery code once, asking the user to save it; prompt user to log in (stay in CONNECTED).<br>&nbsp;&nbsp;+ If `REGI\|3`, 10, 11, 12: Display corresponding error message.<br>- Log received message. | - Log received message.<br>- Verify connection state is CONNECTED (if not, reply `REGI\|12`).<br>- Check field count and characters (if invalid, reply `REGI\|10` or `REGI\|11`).<br>- Check database if `<username>` exists:<br>&nbsp;&nbsp;+ If exists: Reply `REGI\|3\r\n`.<br>&nbsp;&nbsp;+ If unique: Create account with initial Elo = 1000 for caro and reversi and a new random recovery code, save to storage, and reply `REGI\|0\|<recoveryCode>\r\n`.<br>- Log every message sent (response and pushes). |
 | 2. Log in (LOGI) | - Precondition: State is CONNECTED.<br>- Send credentials:<br>`LOGI\|<username>\|<password>\r\n`<br>- Wait for response:<br>&nbsp;&nbsp;+ If `LOGI\|0`: Transition UI to Lobby (LOBBY).<br>&nbsp;&nbsp;+ If `LOGI\|1` (wrong credentials) or `LOGI\|2` (already logged in): Display error.<br>- Log received message. | - Log received message.<br>- Verify state is CONNECTED (else reply `LOGI\|12`) and check syntax (10, 11).<br>- Verify `<username>` and `<password>` against storage:<br>&nbsp;&nbsp;+ If mismatch or non-existent: Reply `LOGI\|1\r\n`.<br>&nbsp;&nbsp;+ If account is already active on another socket: Reply `LOGI\|2\r\n`.<br>&nbsp;&nbsp;+ If valid: Bind socket to account, set state to LOBBY (status = FREE), and reply `LOGI\|0\r\n`.<br>- Log every message sent (response and pushes). |
 | 3. Log out (LOGU) | - Precondition: State is LOBBY.<br>- Send request: `LOGU\r\n`<br>- On receiving `LOGU\|0`: Return UI to Login screen (state CONNECTED) while keeping TCP socket open.<br>- Log received message. | - Log received message.<br>- Verify state is LOBBY (if in room/queue/game, reply `LOGU\|12`; if extra fields, reply `LOGU\|10`).<br>- Unbind account from connection, mark user offline, transition socket state to CONNECTED, and reply `LOGU\|0\r\n`.<br>- Log every message sent (response and pushes). |
+| 16. Reset Password (RSPW) | - Precondition: State is CONNECTED.<br>- Validate input locally: username and new password follow the rules of use case 1, the recovery code is 8 letters or digits (convert to upper case and remove spaces), and the two new password fields match. Then send:<br>`RSPW\|<username>\|<recoveryCode>\|<newPassword>\r\n`<br>- Wait for response:<br>&nbsp;&nbsp;+ If `RSPW\|0\|<recoveryCode>`: Display that the password was changed and show the new recovery code once; prompt user to log in (stay in CONNECTED).<br>&nbsp;&nbsp;+ If `RSPW\|17`: Display "incorrect username or recovery code".<br>&nbsp;&nbsp;+ If `RSPW\|10`, 11, 12: Display corresponding error message.<br>- Log received message. | - Log received message.<br>- Verify connection state is CONNECTED (if not, reply `RSPW\|12`) and exactly three fields exist (if not, reply `RSPW\|10`).<br>- Check the username and the new password with the rules of use case 1, and the recovery code format (if invalid, reply `RSPW\|11`).<br>- Verify that the account exists and that its recovery code matches; an unknown username and a wrong code get the same reply, so the reply does not reveal which accounts exist (if not, reply `RSPW\|17\r\n`).<br>- Store the new password and a new random recovery code that replaces the old one (each code works once), save to storage, and reply `RSPW\|0\|<recoveryCode>\r\n`. A session already logged in with this account is not affected.<br>- Log every message sent (response and pushes). |
 
 **Example**
 
 ```
-C: REGI|minh|123456        S: REGI|0
+C: REGI|minh|123456        S: REGI|0|K7Q2M9XP
 C: REGI|minh|abcdef        S: REGI|3
 C: REGI|hoang minh|123     S: REGI|11
 C: REGI|minh               S: REGI|10
@@ -334,6 +345,10 @@ C: LOGI|minh|123456        S: LOGI|0
 C: LOGI|minh|123456        S: LOGI|12       (already logged in)
 C: LOGU                    S: LOGU|0
 C: LOGU                    S: LOGU|12       (state is CONNECTED)
+C: RSPW|minh|ABCD2345|newpass   S: RSPW|17
+C: RSPW|minh|k7q2m9xp|newpass   S: RSPW|11       (the client upper-cases the code before sending)
+C: RSPW|minh|K7Q2M9XP|newpass   S: RSPW|0|R4TW8HNC
+C: RSPW|minh|K7Q2M9XP|other1    S: RSPW|17       (the old code no longer works)
 ```
 
 Xem thêm Appendix A: A1 (ký tự hợp lệ của username và password), A2 (message type lạ), và use case 9 (khi `LOGU` thành công, các lời mời đang chờ gửi tới người này bị hủy và host nhận `IDCL`).
@@ -676,7 +691,7 @@ Google Doc và slide chưa nói rõ các điểm dưới đây. Tài liệu này
 
 ### B. Resolved points
 
-Năm chỗ dưới đây là nơi bảng trong Google Doc tự mâu thuẫn hoặc khác với cách server được xây. Mỗi chỗ đã được chốt bằng cách đối chiếu với yêu cầu của đề tài và của môn học. Cột cuối ghi câu nào trong bảng đã được sửa, để nhóm sửa lại Google Doc cho khớp.
+R1–R5 là những chỗ bảng trong Google Doc tự mâu thuẫn hoặc khác với cách server được xây; R6 là phần thêm mới sau khi nhóm chốt prototype giao diện. Mỗi chỗ đã được chốt bằng cách đối chiếu với yêu cầu của đề tài và của môn học. Cột cuối ghi câu nào trong bảng đã được sửa, để nhóm sửa lại Google Doc cho khớp.
 
 | # | Decision | Basis | Change to the tables |
 |---|---|---|---|
@@ -685,6 +700,7 @@ Năm chỗ dưới đây là nơi bảng trong Google Doc tự mâu thuẫn ho�
 | R3 | The server logs every received **and sent** message. The client logs received messages in all use cases. | The topic grades "Log received and sent messages on the server" (1 point); the tables only said "Log received message", which would lose that point if followed literally. Client-side logging is not graded; the course exercises ask both sides to print the messages they send and receive. | Server column of all 15 use cases: one step added. Client column of use cases 1–5: one step added. |
 | R4 | `MOVE\|12` and `RSGN\|12` are not shown as errors; the client handles `OVER`. | The topic requires "check and announce the winner and loser for both participating sides": what the player must see is the result. Use case 15 already calls this "a normal race, not a fault"; use cases 13 and 14 said the opposite. | Two sentences, use cases 13 and 14 |
 | R5 | The room lives until the end of the game, as the table says ("delete the game and its room"). | The topic speaks of players who "join rooms", and the use case list has "Join room" and "Leave room": the game is played in the room. Nothing changes on the wire; the server code, which deletes the room at `IACC`, must be changed. | None |
+| R6 | Use case 16 Reset Password is added: `RSPW`, code 17, and `REGI\|0` carries a recovery code. | The team approved the client prototype on 19/11/2026, which has a "Forgot password?" flow. The application has no e-mail, so the server gives every account a one-time recovery code at registration. Nothing else on the wire changes. | Use case 1: two sentences (below). Use case 16: a new row. Messages, codes and data types: one row each. |
 
 Sentences changed from the Google Doc:
 
@@ -698,6 +714,9 @@ Sentences changed from the Google Doc:
 | 15, Server | "Update Elo for this game under the locks of both rating records (fixed order): …" | "Update Elo for this game: …" |
 | 10, Client | "On receiving `DROM\|10` or `DROM\|12`: show the error." | "On receiving `DROM\|12`: an invitee has just accepted, so handle the STRT that follows and do not show an error. On receiving `DROM\|10`: show the error." |
 | 13, Client | "On `MOVE\|10` or `MOVE\|12`: show the error." | "On `MOVE\|10`: show the error. On `MOVE\|12`: the game has just ended, so handle the OVER and do not show an error." |
+| 1, Client | "If `REGI\|0`: Display registration success, prompt user to log in (stay in CONNECTED)." | "If `REGI\|0\|<recoveryCode>`: Display registration success and show the recovery code once, asking the user to save it; prompt user to log in (stay in CONNECTED)." |
+| 1, Server | "If unique: Create account with initial Elo = 1000 for caro and reversi, save to storage, and reply `REGI\|0\r\n`." | "If unique: Create account with initial Elo = 1000 for caro and reversi and a new random recovery code, save to storage, and reply `REGI\|0\|<recoveryCode>\r\n`." |
+| 16 | (no row) | New row "16. Reset Password (RSPW)", in Scenario 1 |
 | 1–15, Server | (no step for sent messages) | Added as the last step: "Log every message sent (response and pushes)." |
 | 1–5, Client | (no log step) | Added as the last step: "Log received message.", as in use cases 6–15 |
 | 14, Client | "On receiving `RSGN\|10` or `RSGN\|12`: show the error. Code 12 can also mean the game has just ended, so still handle the OVER that is on its way." | "On receiving `RSGN\|10`: show the error. On receiving `RSGN\|12`: the game has just ended, so handle the OVER and do not show an error." |
@@ -726,7 +745,7 @@ Cần sửa trên slide và hình vẽ khi làm báo cáo cuối kỳ.
 | Establish a client-server connection using sockets | 2 | Part I section 1, Part II section 6 | TCP, one persistent connection per client; messages framed with `\r\n` |
 | Log received and sent messages on the server | 1 | Section 14, decision R3 | Both `RECV` and `SEND` lines; a step in the Server column of every use case |
 | User registration | 2 | Use case 1, `REGI` | |
-| User login and authentication | 2 | Use cases 2 and 3, `LOGI`, `LOGU` | One connection per account (code 2); every other request is refused before login (code 12) |
+| User login and authentication | 2 | Use cases 2, 3 and 16, `LOGI`, `LOGU`, `RSPW` | One connection per account (code 2); every other request is refused before login (code 12); a forgotten password is reset with the recovery code |
 | View a list of online players | 2 | Use case 4, `PLST` | With status `FREE` / `BUSY` |
 | Match players randomly | 2 | Use cases 11 and 12, `RAND`, `RCAN`, `STRT` | One queue per game |
 | Create game rooms, invite players to join rooms, and accept invitations | 2 | Use cases 6–10, `CROM`, `INVT`, `INVI`, `IACC`, `IDEC`, `IDCL`, `DROM`, `STRT` | Decisions R2 and R5 |
@@ -744,6 +763,6 @@ Cần sửa trên slide và hình vẽ khi làm báo cáo cuối kỳ.
 | Define your own application protocol | This document | |
 | Client and server run on two separate PCs | Nothing in the protocol depends on the host | The client needs a way to enter the server address; it is currently fixed to `127.0.0.1` |
 | Protocol defines message formats, message sequences and how to process a message | Part II; message flows and state machine; Message Processing Tables | |
-| Protocol is unambiguous and complete | Check order in section 8; sections 11–13 for invitations, disconnection and races; decisions R1–R5 | |
+| Protocol is unambiguous and complete | Check order in section 8; sections 11–13 for invitations, disconnection and races; decisions R1–R6 | |
 
 Không có yêu cầu nào của đề tài thiếu use case tương ứng. Hai chỗ protocol đã đủ nhưng code chưa có: ghi log trên server (1 điểm) và nhập địa chỉ server ở client.

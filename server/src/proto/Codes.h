@@ -6,11 +6,12 @@ namespace proto {
 // Trạng thái của một session (docs/protocol.md, mục 3).
 enum class State { CONNECTED, LOBBY, MATCHING, IN_ROOM, IN_GAME };
 
-// 14 request của client, dùng làm khóa trong bảng lệnh để tránh gõ sai chuỗi.
+// 15 request của client, dùng làm khóa trong bảng lệnh để tránh gõ sai chuỗi.
 namespace Cmd {
 inline constexpr const char* REGI = "REGI";
 inline constexpr const char* LOGI = "LOGI";
 inline constexpr const char* LOGU = "LOGU";
+inline constexpr const char* RSPW = "RSPW";
 inline constexpr const char* PLST = "PLST";
 inline constexpr const char* RANK = "RANK";
 inline constexpr const char* RAND = "RAND";
@@ -52,7 +53,8 @@ enum class ErrorCode : int {
     NOT_IN_TURN = 13,
     OUT_OF_BOUNDS = 14,
     CELL_OCCUPIED = 15,
-    ILLEGAL_MOVE = 16
+    ILLEGAL_MOVE = 16,
+    INCORRECT_USERNAME_RECOVERY_CODE = 17
 };
 
 }  // namespace proto

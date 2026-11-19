@@ -1,33 +1,56 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<?import javafx.geometry.Insets?>
+<?import javafx.scene.shape.*?>
+<?import java.net.URL?>
 
-<BorderPane xmlns="http://javafx.com/javafx"
-            xmlns:fx="http://javafx.com/fxml"
-            fx:controller="netpro.client.ui.controller.GameController">
-    <padding><Insets top="12" right="12" bottom="12" left="12"/></padding>
+<!-- Game screen (docs/ui-spec.md, section 6). Board, player cards, result and move list are built by GameController. -->
+<StackPane xmlns="http://javafx.com/javafx"
+           xmlns:fx="http://javafx.com/fxml"
+           fx:id="root"
+           fx:controller="netpro.client.ui.controller.GameController"
+           prefWidth="1100" prefHeight="620">
+    <stylesheets>
+        <URL value="@theme.css"/>
+    </stylesheets>
 
-    <top>
-        <VBox spacing="4" alignment="CENTER">
-            <padding><Insets bottom="8"/></padding>
-            <Label fx:id="infoLabel"/>
-            <Label fx:id="turnLabel" style="-fx-font-size: 18px;"/>
-        </VBox>
-    </top>
-
-    <center>
-        <StackPane fx:id="boardHolder"/>
-    </center>
-
-    <bottom>
-        <VBox spacing="8" alignment="CENTER">
-            <padding><Insets top="8"/></padding>
-            <Label fx:id="resultLabel" style="-fx-font-size: 16px;" wrapText="true"/>
-            <HBox spacing="10" alignment="CENTER">
-                <Button fx:id="resignButton" text="Đầu hàng" onAction="#onResign"/>
-                <Button fx:id="backButton" text="Về sảnh" onAction="#onBack"/>
+    <BorderPane>
+        <top>
+            <HBox styleClass="topbar">
+                <StackPane fx:id="logoHolder"/>
+                <Label fx:id="gameTitle" styleClass="cond" style="-fx-font-size: 18px;"/>
+                <Label fx:id="roomLabel" styleClass="dim"/>
             </HBox>
-        </VBox>
-    </bottom>
-</BorderPane>
+        </top>
+
+        <center>
+            <HBox>
+                <StackPane fx:id="boardArea" HBox.hgrow="ALWAYS"/>
+                <VBox fx:id="side" spacing="12" prefWidth="300" minWidth="300" maxWidth="300">
+                    <padding><Insets top="20" right="20" bottom="16"/></padding>
+                    <HBox fx:id="oppCard"/>
+                    <HBox fx:id="meCard"/>
+                    <VBox fx:id="resultBox" visible="false" managed="false"/>
+                    <VBox styleClass="card" VBox.vgrow="ALWAYS" spacing="6">
+                        <padding><Insets top="12" right="10" bottom="8" left="10"/></padding>
+                        <HBox fx:id="movesHeader"/>
+                        <ScrollPane fitToWidth="true" hbarPolicy="NEVER" VBox.vgrow="ALWAYS">
+                            <VBox fx:id="historyRows"/>
+                        </ScrollPane>
+                    </VBox>
+                    <Button fx:id="resignButton" text="Resign" styleClass="btn, danger" maxWidth="Infinity" onAction="#onResign"/>
+                </VBox>
+            </HBox>
+        </center>
+
+        <bottom>
+            <HBox styleClass="statusbar">
+                <Circle radius="3.5" style="-fx-fill: #2f6b4f;"/>
+                <Label fx:id="serverLabel" styleClass="mono, faint, small"/>
+                <Region styleClass="vsep" minHeight="16" maxHeight="16"/>
+                <Label fx:id="statusLabel" styleClass="msg"/>
+            </HBox>
+        </bottom>
+    </BorderPane>
+</StackPane>

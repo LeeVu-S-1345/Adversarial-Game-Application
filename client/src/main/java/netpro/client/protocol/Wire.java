@@ -13,10 +13,12 @@ public final class Wire {
 
     public record Player(String name, String status) {
         public boolean free() { return "FREE".equals(status); }
-        @Override public String toString() { return name + (free() ? "" : "  (bận)"); }
     }
 
     public record RankRow(String name, int rating) {}
+
+    /** Lời mời nhận được: INVI|<roomId>|<creator>|<game> */
+    public record Invite(String roomId, String host, String game) {}
 
     /** PLST|0|<user1>,<status1>;...;<usern>,<statusn> */
     public static List<Player> parsePlayers(String field) {
@@ -47,8 +49,8 @@ public final class Wire {
 
     public static String gameLabel(String game) {
         return switch (game) {
-            case CARO -> "Caro (15x15)";
-            case REVERSI -> "Reversi (8x8)";
+            case CARO -> "Caro";
+            case REVERSI -> "Reversi";
             default -> game;
         };
     }

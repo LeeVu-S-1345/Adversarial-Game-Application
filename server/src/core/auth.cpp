@@ -1,5 +1,6 @@
-// server/src/core/auth.cpp  -- Scenario 1: REGI (1), LOGI (2), LOGU (3)
+// server/src/core/auth.cpp  -- Scenario 1: REGI (1), LOGI (2), LOGU (3), RSPW (16)
 #include <cctype>
+#include <random>
 #include <string>
 
 #include "Hub.h"
@@ -27,7 +28,29 @@ bool validPassword(const std::string& s) {
     return true;
 }
 
+// Recovery code: 8 ký tự lấy từ 32 ký tự dễ đọc (bỏ I, O, 0, 1). docs/protocol.md, use case 16.
+constexpr const char* kCodeAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+std::string randomRecoveryCode() {
+    static std::mt19937 rng{std::random_device{}()};
+    std::uniform_int_distribution<int> pick(0, 31);
+    std::string code;
+    for (int i = 0; i < 8; ++i) code += kCodeAlphabet[pick(rng)];
+    return code;
+}
+
+// Định dạng hợp lệ của recovery code do client gửi: đúng 8 chữ in hoa hoặc số.
+bool validCode(const std::string& s) {
+    if (s.size() != 8) return false;
+    for (unsigned char ch : s) {
+        if (!std::isupper(ch) && !std::isdigit(ch)) return false;
+    }
+    return true;
+}
+
 }  // namespace
+
+std::string Hub::recoveryCode() { return newRecoveryCode_ ? newRecoveryCode_() : randomRecoveryCode(); }
 
 // 1. Register: 12 -> 10 -> 11 -> 3 -> 0. Thành công vẫn ở CONNECTED.
 void Hub::handleRegi(Session& s, const proto::Message& msg, Out& out) {
@@ -38,11 +61,12 @@ void Hub::handleRegi(Session& s, const proto::Message& msg, Out& out) {
         return;
     }
     // Tài khoản mới có Elo 1000 cho cả caro và reversi.
-    if (!users_.create(user, pass)) {
+    const std::string code = recoveryCode();
+    if (!users_.create(user, pass, code)) {
         reply(s.conn, msg.cmd, ErrorCode::EXISTING_USER, out);
         return;
     }
-    reply(s.conn, msg.cmd, ErrorCode::OK, out);
+    reply(s.conn, msg.cmd, ErrorCode::OK, out, {code});  // REGI|0|<recoveryCode>
 }
 
 // 2. Log in: 12 -> 10 -> 11 -> 1 -> 2 -> 0.
@@ -76,6 +100,26 @@ void Hub::handleLogu(Session& s, const proto::Message& msg, Out& out) {
     s.username.clear();
     s.state = State::CONNECTED;
     reply(s.conn, msg.cmd, ErrorCode::OK, out);
+}
+
+// 16. Reset Password: 12 -> 10 -> 11 -> 17 -> 0. Vẫn ở CONNECTED.
+// RSPW|<username>|<recoveryCode>|<newPassword>  ->  RSPW|0|<newRecoveryCode>
+void Hub::handleRspw(Session& s, const proto::Message& msg, Out& out) {
+    const std::string& user = msg.fields[0];
+    const std::string& code = msg.fields[1];
+    const std::string& pass = msg.fields[2];
+    if (!validName(user) || !validCode(code) || !validPassword(pass)) {
+        reply(s.conn, msg.cmd, ErrorCode::BAD_USERNAME_PASSWORD, out);
+        return;
+    }
+    // Tên không tồn tại và mã sai trả cùng một mã 17: không lộ tài khoản nào tồn tại.
+    // Mỗi mã chỉ dùng được một lần: đổi mật khẩu xong thì cấp mã mới.
+    const std::string fresh = recoveryCode();
+    if (!users_.resetPassword(user, code, pass, fresh)) {
+        reply(s.conn, msg.cmd, ErrorCode::INCORRECT_USERNAME_RECOVERY_CODE, out);
+        return;
+    }
+    reply(s.conn, msg.cmd, ErrorCode::OK, out, {fresh});
 }
 
 }  // namespace core

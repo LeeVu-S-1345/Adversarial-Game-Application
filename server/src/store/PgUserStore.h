@@ -23,8 +23,11 @@ public:
     // Kết nối và tạo/nâng cấp bảng users. False nếu không kết nối được.
     bool load();
 
-    bool create(const std::string& name, const std::string& password) override;
+    bool create(const std::string& name, const std::string& password,
+                const std::string& recoveryCode) override;
     bool checkPassword(const std::string& name, const std::string& password) const override;
+    bool resetPassword(const std::string& name, const std::string& code,
+                       const std::string& newPassword, const std::string& newCode) override;
     int elo(const std::string& name, const std::string& game) const override;
     void setElo(const std::string& name, const std::string& game, int elo) override;
     std::vector<RankEntry> ranking(const std::string& game) const override;

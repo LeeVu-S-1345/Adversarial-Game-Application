@@ -1,5 +1,6 @@
 // server/src/core/Hub.h
 #pragma once
+#include <functional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -33,6 +34,9 @@ public:
     void onMessage(ConnId conn, const proto::Message& msg, Out& out);
     void onClose(ConnId conn, Out& out);
 
+    // Thay bộ sinh recovery code (test dùng mã cố định). Mặc định: 8 ký tự ngẫu nhiên.
+    void setRecoveryCodeGenerator(std::function<std::string()> gen) { newRecoveryCode_ = std::move(gen); }
+
 private:
     using Handler = void (Hub::*)(Session&, const proto::Message&, Out&);
 
@@ -57,6 +61,8 @@ private:
     void handleRegi(Session&, const proto::Message&, Out&);  // 1
     void handleLogi(Session&, const proto::Message&, Out&);  // 2
     void handleLogu(Session&, const proto::Message&, Out&);  // 3
+    void handleRspw(Session&, const proto::Message&, Out&);  // 16
+    std::string recoveryCode();
 
     // info.cpp
     void handlePlst(Session&, const proto::Message&, Out&);  // 4
@@ -89,6 +95,7 @@ private:
     void finishMatch(Match& m, int winnerNo, ConnId exclude, Out& out);
 
     store::UserStore& users_;
+    std::function<std::string()> newRecoveryCode_;  // mặc định: ngẫu nhiên (auth.cpp)
     Registry reg_;
     std::unordered_map<std::string, CmdSpec> table_;
     bool tableReady_ = false;

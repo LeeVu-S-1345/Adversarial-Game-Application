@@ -17,6 +17,7 @@ void Hub::initTable() {
     table_ = {
         {C::REGI, {{S::CONNECTED}, 2, &Hub::handleRegi}},
         {C::LOGI, {{S::CONNECTED}, 2, &Hub::handleLogi}},
+        {C::RSPW, {{S::CONNECTED}, 3, &Hub::handleRspw}},
 
         {C::LOGU, {{S::LOBBY}, 0, &Hub::handleLogu}},
         {C::PLST, {{S::LOBBY, S::IN_ROOM}, 0, &Hub::handlePlst}},

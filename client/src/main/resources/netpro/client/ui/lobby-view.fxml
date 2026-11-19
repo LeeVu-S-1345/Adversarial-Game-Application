@@ -1,58 +1,82 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<?import javafx.geometry.Insets?>
+<?import javafx.scene.shape.*?>
+<?import java.net.URL?>
 
-<BorderPane xmlns="http://javafx.com/javafx"
-            xmlns:fx="http://javafx.com/fxml"
-            fx:controller="netpro.client.ui.controller.LobbyController"
-            prefWidth="820" prefHeight="520">
-    <padding><Insets top="12" right="12" bottom="12" left="12"/></padding>
+<!-- Lobby (docs/ui-spec.md, section 5). Rows, tiles and the play actions are built by LobbyController. -->
+<StackPane xmlns="http://javafx.com/javafx"
+           xmlns:fx="http://javafx.com/fxml"
+           fx:id="root"
+           fx:controller="netpro.client.ui.controller.LobbyController"
+           prefWidth="1100" prefHeight="620">
+    <stylesheets>
+        <URL value="@theme.css"/>
+    </stylesheets>
 
-    <top>
-        <HBox spacing="10" alignment="CENTER_LEFT">
-            <padding><Insets bottom="10"/></padding>
-            <Label fx:id="whoLabel" style="-fx-font-size: 18px;"/>
-            <Region HBox.hgrow="ALWAYS"/>
-            <Button text="Làm mới" onAction="#onRefresh"/>
-            <Button fx:id="logoutButton" text="Đăng xuất" onAction="#onLogout"/>
-        </HBox>
-    </top>
-
-    <left>
-        <VBox spacing="6" prefWidth="210">
-            <Label text="Người chơi online"/>
-            <ListView fx:id="playerList" VBox.vgrow="ALWAYS"/>
-        </VBox>
-    </left>
-
-    <center>
-        <VBox spacing="10" alignment="TOP_CENTER">
-            <padding><Insets left="12" right="12"/></padding>
-            <ComboBox fx:id="gameBox" maxWidth="Infinity"/>
-            <HBox spacing="8" alignment="CENTER">
-                <Button fx:id="randButton" text="Ghép ngẫu nhiên" onAction="#onRand"/>
-                <Button fx:id="cancelRandButton" text="Hủy ghép" onAction="#onCancelRand"/>
+    <BorderPane>
+        <top>
+            <HBox styleClass="topbar">
+                <StackPane fx:id="logoHolder"/>
+                <Label text="Adversarial Game" styleClass="cond" style="-fx-font-size: 18px;"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Button fx:id="refreshButton" text="Refresh" styleClass="btn, ghost, sm" onAction="#onRefresh"/>
+                <Region styleClass="vsep" minHeight="24" maxHeight="24"/>
+                <StackPane fx:id="meAvatar"/>
+                <Label fx:id="meName" styleClass="semi"/>
+                <Button fx:id="logoutButton" text="Log out" styleClass="btn, sm" onAction="#onLogout"/>
             </HBox>
-            <HBox spacing="8" alignment="CENTER">
-                <Button fx:id="createRoomButton" text="Tạo phòng" onAction="#onCreateRoom"/>
-                <Button fx:id="inviteButton" text="Mời người đã chọn" onAction="#onInvite"/>
-                <Button fx:id="cancelRoomButton" text="Hủy phòng" onAction="#onCancelRoom"/>
-            </HBox>
-            <Label text="Lời mời nhận được"/>
-            <ListView fx:id="inviteList" prefHeight="150"/>
-            <HBox spacing="8" alignment="CENTER">
-                <Button fx:id="acceptButton" text="Chấp nhận" onAction="#onAccept"/>
-                <Button fx:id="declineButton" text="Từ chối" onAction="#onDecline"/>
-            </HBox>
-            <Label fx:id="statusLabel" wrapText="true"/>
-        </VBox>
-    </center>
+        </top>
 
-    <right>
-        <VBox spacing="6" prefWidth="210">
-            <Label fx:id="rankTitle" text="Bảng xếp hạng"/>
-            <ListView fx:id="rankList" VBox.vgrow="ALWAYS"/>
-        </VBox>
-    </right>
-</BorderPane>
+        <center>
+            <HBox spacing="18">
+                <padding><Insets top="18" right="20" bottom="16" left="20"/></padding>
+
+                <!-- the "table": choose a game, find an opponent, create a room -->
+                <VBox fx:id="table" styleClass="table" prefWidth="300" minWidth="300" maxWidth="300">
+                    <Label text="CHOOSE A GAME" styleClass="sec"/>
+                    <HBox fx:id="caroTile"/>
+                    <HBox fx:id="reversiTile"/>
+                    <Region VBox.vgrow="ALWAYS"/>
+                    <VBox fx:id="matchBox" spacing="6"/>
+                    <Region styleClass="hsep-felt"/>
+                    <VBox fx:id="roomBox"/>
+                </VBox>
+
+                <VBox spacing="14" HBox.hgrow="ALWAYS">
+                    <VBox fx:id="invitesBox" spacing="8" visible="false" managed="false">
+                        <HBox fx:id="invitesHeader"/>
+                        <VBox fx:id="inviteRows" spacing="8"/>
+                    </VBox>
+                    <VBox fx:id="playersCard" styleClass="card" VBox.vgrow="ALWAYS">
+                        <padding><Insets top="14" right="16" bottom="8" left="16"/></padding>
+                        <HBox fx:id="playersHeader"/>
+                        <ScrollPane fitToWidth="true" hbarPolicy="NEVER" VBox.vgrow="ALWAYS">
+                            <VBox fx:id="playerRows"/>
+                        </ScrollPane>
+                    </VBox>
+                </VBox>
+
+                <VBox fx:id="rankCard" styleClass="card" spacing="4" prefWidth="260" minWidth="260" maxWidth="260">
+                    <padding><Insets top="14" right="12" bottom="12" left="12"/></padding>
+                    <Label fx:id="rankTitle" styleClass="sec">
+                        <padding><Insets left="4" bottom="6"/></padding>
+                    </Label>
+                    <ScrollPane fitToWidth="true" hbarPolicy="NEVER" VBox.vgrow="ALWAYS">
+                        <VBox fx:id="rankRows" spacing="2"/>
+                    </ScrollPane>
+                </VBox>
+            </HBox>
+        </center>
+
+        <bottom>
+            <HBox styleClass="statusbar">
+                <Circle radius="3.5" style="-fx-fill: #2f6b4f;"/>
+                <Label fx:id="serverLabel" styleClass="mono, faint, small"/>
+                <Region styleClass="vsep" minHeight="16" maxHeight="16"/>
+                <Label fx:id="statusLabel" styleClass="msg"/>
+            </HBox>
+        </bottom>
+    </BorderPane>
+</StackPane>

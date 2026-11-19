@@ -1,12 +1,18 @@
 package netpro.client;
 
 import javafx.application.Application;
-import javafx.scene.control.Alert;
+import javafx.application.Platform;
 import javafx.stage.Stage;
 import netpro.client.app.GameClient;
-import java.util.List;
+import netpro.client.app.game.GameSession;
+import netpro.client.ui.CloseGuard;
 import netpro.client.ui.Fx;
 import netpro.client.ui.SceneManager;
+import netpro.client.ui.Theme;
+import netpro.client.ui.controller.GameController;
+import netpro.client.ui.controller.LoginController;
+
+import java.util.List;
 
 public class App extends Application {
 
@@ -14,17 +20,28 @@ public class App extends Application {
 
     @Override
     public void start(Stage stage) {
+        Theme.loadFonts();
         client = new GameClient();
         chooseServer(getParameters().getRaw());
         SceneManager scenes = new SceneManager(stage, client);
 
         client.setPushListener(msg -> Fx.run(() -> scenes.onPush(msg)));
         client.setClosedListener(() -> Fx.run(() -> {
-            scenes.show("login-view.fxml");
-            new Alert(Alert.AlertType.WARNING, "Mất kết nối tới server").show();
+            GameSession g = client.getGame();
+            boolean duringGame = scenes.current() instanceof GameController && g != null && !g.isOver();
+            client.setGame(null);
+            client.getInvites().clear();
+            Object c = scenes.show("login-view.fxml");
+            if (c instanceof LoginController login) login.showConnectionLost(duringGame);
         }));
 
-        stage.setTitle("Adversarial Game Application");
+        // Closing the window during a game asks first (docs/ui-spec.md, 6.3)
+        stage.setOnCloseRequest(e -> {
+            if (scenes.current() instanceof CloseGuard guard && !guard.confirmClose(Platform::exit)) e.consume();
+        });
+
+        stage.setTitle("Adversarial Game");
+        stage.setResizable(false);
         scenes.show("login-view.fxml");
         stage.show();
     }
